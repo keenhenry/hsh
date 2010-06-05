@@ -1,0 +1,41 @@
+# Documentation for sh program
+
+[To compile]: 
+	$ make
+
+[To do test run]:
+	$ make test # This will do a test run with valgrind running
+
+[Program Details]:
+It works just as homework description required, with no memory leak.
+
+My shell allows only maximum of 256 arguments on the command line. If that number exceeds
+that limit, my shell will complain. When typing commands in my shell, it will first try to
+search for builtins (cd, exit, pushd, popd, dirs, path), if not found, then sh will then
+search for commands in current direcotory, then directories which specified in path variable.
+
+All the builtins are implemented as what was required, however, when cd and pushd takes no
+arguments, my shell will change current working directory to user's default home directory.
+Whenever there are errors occur, each builtin will handle them properly and output error
+messages and display new prompts (except 'exit'). Below lists all the possible usage of builtin
+commands of my shell.
+
+cd	 : change current working directory to home directory	
+cd [dir] : change current working directory to [dir]
+exit	 : terminate exeucution of sh
+
+pushd [dir] : change current working directory to [dir] and push previous working directory on
+to stack (shell internal datastructure).
+
+popd : does the opposite of pushd, taking no arguments. If more arguments are specified on the
+command line, sh will complain and display a new prompt.
+
+path : show sh search directory list.
+path [+|-] [dir] : add or delete directory from direcotory list. The list is managed by an
+shell internal environmental variable.
+
+My path variable and directory stack are both implemented with doubly linked list (in stack.c
+and stack.h).
+
+[Program results]:
+It works just fine with no memory leak.
