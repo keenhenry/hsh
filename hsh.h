@@ -1,12 +1,42 @@
 #ifndef _HSH_
 #define _HSH_
 
+/* included header files */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
+
+/* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
-#define CMD_BUFSIZE 512
+#define CMD_BUF_SIZE 512
 #define PATH_SIZE 4096
 
+/**
+ * Global Data Structures
+ **/
+
+/* builtins for shell */
 const char *builtins[] = {"exit", "cd", "echo", "pwd", "pushd", "popd", "dirs", "path", "history", "kill"};
 
+/* user command buffer */
+char *buf_cmd;
+
+/* directory stack */
+struct List dirs_stack;
+
+/* pathname list */
+struct List paths_list;
+
+/* command history queue */
+struct List cmd_queue;
+
+/* function prototypes */
 int input_clean(char *buf);
 int read_cmd(char *buf, int *bf_sz);
 int tokenize_cmd(char *args[], char *cmd);

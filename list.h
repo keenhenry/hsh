@@ -9,7 +9,7 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-typedef double DATATYPE;		/* the type of data a node will hold */
+typedef char* DATATYPE;		/* the type of data a node will hold */
 
 /**
  * A List consists of three pointers:

@@ -4,17 +4,32 @@
  * @date: 04/08/2010
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/wait.h>
 #include "list.h"
 #include "hsh.h"
+
+/**
+ * show error message and exit shell
+ */
+void die_with_error(char *msg)
+{
+	perror(msg);
+	exit(EXIT_FAILURE);
+}
+
+/**
+ * initialize some internal structures before entering shell
+ */
+void init_shell()
+{
+	/* initialize command buffer for user inputs */
+	buf_cmd = (char*) malloc(CMD_BUF_SIZE * sizeof(char));
+	if (buf_cmd == NULL)
+		die_with_error("malloc");
+
+	/* initialize internal variables for shell */
+	list_init(&dir_stack);
+	list_init(&paths_list);
+}
 
 int main(void)
 {
@@ -228,33 +243,22 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 			}
 		}
 	}
-
 	return -1;	/* command not found */
 }
 
 void do_main()
 {
-	char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
-	char *buf_cmd;			/* user input buffer */
-	stackT dir;			/* stack used by pushd, popd, dirs */
-	stackT path;			/* stack used by path */
-	char wd[PATH_SIZE];		/* working dir path name */
-	int length = CMD_BUFSIZE;	/* length of user input command */
 	int nargs;			/* # of args */
 	int error;			/* error code for find_cmd() functions */
-	char cmd_path[PATH_SIZE];	/* command search path */
 	pid_t pid;
-	char hostname[20];
+	
+	char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
+	char wd[PATH_SIZE];		/* working dir path name */
+	char cmd_path[PATH_SIZE];	/* command search path */
 
-	/* initialize data structures */
-	stack_init(&dir);
-	stack_init(&path);
-	buf_cmd = (char*) malloc(length * sizeof(char));
-	if (buf_cmd == NULL) {
-		perror("malloc");
-		exit(1);
-	}
-
+	/* initialize shell */
+	init_shell();
+	
 	/* enter shell */
 	while (1) {
 		memset(buf_cmd, 0, length);
