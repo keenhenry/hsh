@@ -5,6 +5,8 @@
 #define CMD_BUFSIZE 512
 #define PATH_SIZE 4096
 
+const char *builtins[] = {"exit", "cd", "echo", "pwd", "pushd", "popd", "dirs", "path", "history", "kill"};
+
 int input_clean(char *buf);
 int read_cmd(char *buf, int *bf_sz);
 int tokenize_cmd(char *args[], char *cmd);

@@ -18,90 +18,7 @@
 
 int main(void)
 {
-	char *builtins[] = {"exit", "cd", "pushd", "popd", "dirs", "path", "history"};
-	char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
-	char *buf_cmd;			/* user input buffer */
-	stackT dir;			/* stack used by pushd, popd, dirs */
-	stackT path;			/* stack used by path */
-	char wd[PATH_SIZE];		/* working dir path name */
-	int length = CMD_BUFSIZE;	/* length of user input command */
-	int nargs;			/* # of args */
-	int error;			/* error code for find_cmd() functions */
-	char cmd_path[PATH_SIZE];	/* command search path */
-	pid_t pid;
-	char hostname[20];
-
-	/* initialize data structures */
-	stack_init(&dir);
-	stack_init(&path);
-	buf_cmd = (char*) malloc(length * sizeof(char));
-	if (buf_cmd == NULL) {
-		perror("malloc");
-		exit(1);
-	}
-
-	/* enter shell */
-	while (1) {
-		memset(buf_cmd, 0, length);
-
-		printf("%s@%s $ ", getpwuid(getuid())->pw_name, getcwd(wd, PATH_SIZE));
-		if(read_cmd(buf_cmd, &length) > 0)
-			continue;
-		nargs = tokenize_cmd(buf_arg, buf_cmd);		
-		if (nargs >= MAX_NUM_ARGS) {
-			fprintf(stderr, "-sh: too many arguments\n");
-			continue;
-		}
-
-		/* check for builtins */
-		if (nargs == 0)
-			continue;
-		if (!strcmp(buf_arg[0], builtins[0])) 	/* exit */
-			break;
-		if (!strcmp(buf_arg[0], builtins[1])) {	/* cd */
-			if (nargs == 1)
-				cd(NULL);
-			else
-				cd(buf_arg[1]);
-			continue;
-		}	
-		if (!strcmp(buf_arg[0], builtins[2]) || 
-		    !strcmp(buf_arg[0], builtins[3]) || 
-		    !strcmp(buf_arg[0], builtins[4])) {	/* pushd, popd, dirs */
-		       	access_stack(buf_arg[0], buf_arg[1], &dir, nargs);
-			continue;
-		}
-		if (!strcmp(buf_arg[0], builtins[5])) {	/* path */
-			path_cmd(nargs, buf_arg, &path);
-			continue;
-		}
-
-		/* check for utilities in path */
-		error = find_cmd(&path, buf_arg[0], cmd_path);
-		if(error == 0) {	/* command found */
-			switch (pid = fork()) {
-			case -1:
-				perror("fork");
-				exit(1);
-			case 0:	/* child process here */
-				execv(cmd_path, buf_arg);
-				perror("execv");
-				exit(1);
-			default:
-				if (waitpid(pid, NULL, 0) != pid) {
-					perror("waitpid");	
-					exit(1);
-				}	
-			}
-		} else {
-			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
-		}
-	}
-
-	free(buf_cmd);
-	stack_dtor(&dir);
-	stack_dtor(&path);
-	return 0;
+	do_main();
 }
 
 /* sanitize user input */
@@ -315,10 +232,8 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 	return -1;	/* command not found */
 }
 
-/*
- do_main()
- {
-	char *builtins[] = {"exit", "cd", "pushd", "popd", "dirs", "path", "history"};
+void do_main()
+{
 	char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
 	char *buf_cmd;			/* user input buffer */
 	stackT dir;			/* stack used by pushd, popd, dirs */
@@ -402,5 +317,4 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 	stack_dtor(&dir);
 	stack_dtor(&path);
 	return 0;
- } 
- */
+} 

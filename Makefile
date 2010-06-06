@@ -22,7 +22,7 @@ $(TAR): $(OBJS)
 
 $(TAR).o: $(HEAD) list.c 
 
-list.o: list.h
+#list.o: list.h
 
 test: build
 	valgrind --leak-check=yes ./hsh
