@@ -21,20 +21,97 @@ void die_with_error(char *msg)
  */
 void init_shell()
 {
+	/* initialize internal variables for shell */
+	list_init(&dirs_stack);
+	list_init(&paths_list);
+	list_init(&cmd_queue);
+	//getcwd(pwd, PATH_SIZE);
+}
+
+void run_shell()
+{
+	//int nargs;			/* # of args */
+	//int error;			/* error code for find_cmd() functions */
+	//pid_t pid;
+	
+	//char wd[PATH_SIZE];		/* working dir path name */
+	//char cmd_path[PATH_SIZE];	/* command search path */
+	char *buf_cmd = NULL;		/* user command buffer */
+	//char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
+	char wd[PATH_SIZE];		/* working dir path name */
+	//char cmd_path[PATH_SIZE];	/* command search path */
+	
 	/* initialize command buffer for user inputs */
 	buf_cmd = (char*) malloc(CMD_BUF_SIZE * sizeof(char));
 	if (buf_cmd == NULL)
 		die_with_error("malloc");
+	
+	while (1) {
+		/* show shell prompt */
+		printf("%s@%s $ ", getpwuid(getuid())->pw_name, getcwd(wd, PATH_SIZE));
+		
+		memset(buf_cmd, 0, CMD_BUF_SIZE);
+/*	
+		if(read_cmd(buf_cmd, &length) > 0)
+			continue;
+		nargs = tokenize_cmd(buf_arg, buf_cmd);		
+		if (nargs >= MAX_NUM_ARGS) {
+			fprintf(stderr, "-sh: too many arguments\n");
+			continue;
+		}
 
-	/* initialize internal variables for shell */
-	list_init(&dir_stack);
-	list_init(&paths_list);
+		* check for builtins *
+		if (nargs == 0)
+			continue;
+		if (!strcmp(buf_arg[0], builtins[0])) 	// exit *
+			break;
+		if (!strcmp(buf_arg[0], builtins[1])) {	// cd *
+			if (nargs == 1)
+				cd(NULL);
+			else
+				cd(buf_arg[1]);
+			continue;
+		}	
+		if (!strcmp(buf_arg[0], builtins[2]) || 
+		    !strcmp(buf_arg[0], builtins[3]) || 
+		    !strcmp(buf_arg[0], builtins[4])) {	// pushd, popd, dirs *
+		       	access_stack(buf_arg[0], buf_arg[1], &dir, nargs);
+			continue;
+		}
+		if (!strcmp(buf_arg[0], builtins[5])) {	// path *
+			path_cmd(nargs, buf_arg, &path);
+			continue;
+		}
+
+		// check for utilities in path *
+		error = find_cmd(&path, buf_arg[0], cmd_path);
+		if(error == 0) {	// command found 
+			switch (pid = fork()) {
+			case -1:
+				perror("fork");
+				exit(1);
+			case 0:	// child process here 
+				execv(cmd_path, buf_arg);
+				perror("execv");
+				exit(1);
+			default:
+				if (waitpid(pid, NULL, 0) != pid) {
+					perror("waitpid");	
+					exit(1);
+				}	
+			}
+		} else {
+			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
+		}
+*/
+	}
 }
 
-int main(void)
+void exit_shell()
 {
-	do_main();
+	return;
 }
+
 
 /* sanitize user input */
 int input_clean(char *buf)
@@ -111,7 +188,7 @@ void cd(const char *dir)
 	}
 }
 
-/* accessing directory stack */
+/* accessing directory stack 
 void access_stack(const char *op, const char *dir, stackT *s, int nargs)
 {
 	if(!strcmp(op, "pushd")){
@@ -140,9 +217,9 @@ void access_stack(const char *op, const char *dir, stackT *s, int nargs)
 		}
 		show_stack(s, '\n');
 	}
-}
+}*/
 
-/* parsing path command */
+/* parsing path command 
 int path_cmd(int nargs, char *args[], stackT *s)
 {
 	struct stat buf;
@@ -155,7 +232,7 @@ int path_cmd(int nargs, char *args[], stackT *s)
 
 	if (nargs != 3) {
 		fprintf(stderr, "-sh: usage: %s [+|-] [/some/dir]\n", args[0]);
-		return 1;	/* to indicate error occurs */
+		return 1;	// to indicate error occurs 
 	}
 
 	if (!strcmp(args[1], "+")) {
@@ -163,7 +240,7 @@ int path_cmd(int nargs, char *args[], stackT *s)
 			fprintf(stderr, "-sh: path: %s\n", strerror(errno));
 			return 1;
 		}
-		if (find_node(s, args[2]) >= 0) {/* detecting duplicated path */
+		if (find_node(s, args[2]) >= 0) {// detecting duplicated path 
 			fprintf(stderr, "-sh: path: %s already in path list\n", args[2]);
 			return 1;
 		}
@@ -185,14 +262,14 @@ int path_cmd(int nargs, char *args[], stackT *s)
 
 	fprintf(stderr, "-sh: path: %s: invalid argument\n", args[1]);
 	return 1;	
-}
+}*/
 
-/* to find the executables */
+/* to find the executables 
 int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 {
-	struct stat sb;		/* store command file status */
+	struct stat sb;		// store command file status
 
-	/* check cmd size is not too long */
+	// check cmd size is not too long 
 	if (strlen(cmd) + strlen("./") >= PATH_SIZE - 1) {
 		fprintf(stderr, "command too long\n");
 		return -1;
@@ -202,11 +279,11 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 	strcat(path_buf, "./");
 	strcat(path_buf, cmd);
 	
-	/* first search for current dir */
+	// first search for current dir 
 	if (stat(path_buf, &sb) == 0) {
-		if ((sb.st_mode & S_IXOTH) != 00001) /* user has no execute permission */
+		if ((sb.st_mode & S_IXOTH) != 00001) // user has no execute permission
 			return -1;
-		return 0; 	/* command found */
+		return 0; 	// command found 
 	} else {
 		if (errno == ENOENT); 
 		else {
@@ -215,7 +292,7 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 		}
 	}
 
-	/* otherwise search for path list */
+	// otherwise search for path list 
 	struct Node *tmp = list->head;
 	while (tmp) {
 		if (strlen(cmd) + strlen(tmp->data) + strlen("/") >= PATH_SIZE - 1) {
@@ -232,7 +309,7 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 		if (stat(path_buf, &sb) == 0) {
 			if ((sb.st_mode & S_IXOTH) != 00001) 
 				return -1;
-			return 0;	/* found */
+			return 0;	// found 
 		} else {
 			if (errno == ENOENT) {
 				tmp = tmp->next;
@@ -243,82 +320,27 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 			}
 		}
 	}
-	return -1;	/* command not found */
-}
+	return -1;	 command not found
+}*/
 
-void do_main()
+int do_main()
 {
-	int nargs;			/* # of args */
-	int error;			/* error code for find_cmd() functions */
-	pid_t pid;
-	
-	char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
-	char wd[PATH_SIZE];		/* working dir path name */
-	char cmd_path[PATH_SIZE];	/* command search path */
-
 	/* initialize shell */
 	init_shell();
 	
-	/* enter shell */
-	while (1) {
-		memset(buf_cmd, 0, length);
+	/* run shell */
+	run_shell();
 
-		printf("%s@%s $ ", getpwuid(getuid())->pw_name, getcwd(wd, PATH_SIZE));
-		if(read_cmd(buf_cmd, &length) > 0)
-			continue;
-		nargs = tokenize_cmd(buf_arg, buf_cmd);		
-		if (nargs >= MAX_NUM_ARGS) {
-			fprintf(stderr, "-sh: too many arguments\n");
-			continue;
-		}
+	/* exit shell */
+	exit_shell();
 
-		/* check for builtins */
-		if (nargs == 0)
-			continue;
-		if (!strcmp(buf_arg[0], builtins[0])) 	/* exit */
-			break;
-		if (!strcmp(buf_arg[0], builtins[1])) {	/* cd */
-			if (nargs == 1)
-				cd(NULL);
-			else
-				cd(buf_arg[1]);
-			continue;
-		}	
-		if (!strcmp(buf_arg[0], builtins[2]) || 
-		    !strcmp(buf_arg[0], builtins[3]) || 
-		    !strcmp(buf_arg[0], builtins[4])) {	/* pushd, popd, dirs */
-		       	access_stack(buf_arg[0], buf_arg[1], &dir, nargs);
-			continue;
-		}
-		if (!strcmp(buf_arg[0], builtins[5])) {	/* path */
-			path_cmd(nargs, buf_arg, &path);
-			continue;
-		}
-
-		/* check for utilities in path */
-		error = find_cmd(&path, buf_arg[0], cmd_path);
-		if(error == 0) {	/* command found */
-			switch (pid = fork()) {
-			case -1:
-				perror("fork");
-				exit(1);
-			case 0:	/* child process here */
-				execv(cmd_path, buf_arg);
-				perror("execv");
-				exit(1);
-			default:
-				if (waitpid(pid, NULL, 0) != pid) {
-					perror("waitpid");	
-					exit(1);
-				}	
-			}
-		} else {
-			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
-		}
-	}
-
-	free(buf_cmd);
-	stack_dtor(&dir);
-	stack_dtor(&path);
+	//free(buf_cmd);
+	//stack_dtor(&dir);
+	//stack_dtor(&path);
 	return 0;
-} 
+}
+
+int main(void)
+{
+	return do_main();
+}

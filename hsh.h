@@ -22,21 +22,22 @@
  **/
 
 /* builtins for shell */
-const char *builtins[] = {"exit", "cd", "echo", "pwd", "pushd", "popd", "dirs", "path", "history", "kill"};
-
-/* user command buffer */
-char *buf_cmd;
+static const char *builtins[] = {"exit", "cd", "echo", "pwd", "pushd", "popd", "dirs", "path", "history", "kill"};
 
 /* directory stack */
-struct List dirs_stack;
+static struct List dirs_stack;
 
 /* pathname list */
-struct List paths_list;
+static struct List paths_list;
 
 /* command history queue */
-struct List cmd_queue;
+static struct List cmd_queue;
+
+/* current working directory */
+static char *pwd = NULL;
 
 /* function prototypes */
+/*
 int input_clean(char *buf);
 int read_cmd(char *buf, int *bf_sz);
 int tokenize_cmd(char *args[], char *cmd);
@@ -44,5 +45,5 @@ void cd(const char *dir);
 void access_stack(const char *op, const char *dir, stackT *s, int nargs);
 int path_cmd(int nargs, char *args[], stackT *s);
 int find_cmd(const stackT *list, const char *cmd, char *path_buf);
-
+*/
 #endif
