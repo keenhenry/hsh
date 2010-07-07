@@ -17,15 +17,37 @@ void die_with_error(char *msg)
 }
 
 /**
- * initialize some internal structures before entering shell
+ * Print data of an entry in history queue
+ */
+void print_cmd(void *cmd)
+{
+	printf("%s\n", (char*)cmd);
+}
+
+/**
+ * The routine to handle 'history' builtin:
+ * traverse history queue and print every entry 
+ * from list front to list tail.
+ */
+void history()
+{
+	if (is_empty(&cmd_queue))
+		printf("No commands buffered.\n");
+	else	
+		list_traversal(&cmd_queue, print_cmd);
+}
+
+/**
+ * initialize some environs before entering shell
  */
 void init_shell()
 {
-	/* initialize internal variables for shell */
+	/* initialize environmental variables for shell */
 	list_init(&dirs_stack);
 	list_init(&paths_list);
 	list_init(&cmd_queue);
-	//getcwd(pwd, PATH_SIZE);
+	if (gethostname(hostname, sizeof(hostname)))
+		die_with_error("gethostname");
 }
 
 void run_shell()
@@ -38,7 +60,6 @@ void run_shell()
 	//char cmd_path[PATH_SIZE];	/* command search path */
 	char *buf_cmd = NULL;		/* user command buffer */
 	//char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
-	char wd[PATH_SIZE];		/* working dir path name */
 	//char cmd_path[PATH_SIZE];	/* command search path */
 	
 	/* initialize command buffer for user inputs */
@@ -46,10 +67,12 @@ void run_shell()
 	if (buf_cmd == NULL)
 		die_with_error("malloc");
 	
-	while (1) {
-		/* show shell prompt */
-		printf("%s@%s $ ", getpwuid(getuid())->pw_name, getcwd(wd, PATH_SIZE));
-		
+	//while (1) {
+		/* display shell prompt */
+		printf("%s@%s:%s$ ", getpwuid(getuid())->pw_name, hostname, getcwd(cwd, PATH_SIZE));
+
+		// later u should try to replace the absolute path of home directory with '~'
+		/* zero out command buffer */
 		memset(buf_cmd, 0, CMD_BUF_SIZE);
 /*	
 		if(read_cmd(buf_cmd, &length) > 0)
@@ -104,7 +127,8 @@ void run_shell()
 			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
 		}
 */
-	}
+	//}
+	free(buf_cmd);
 }
 
 void exit_shell()
@@ -114,7 +138,7 @@ void exit_shell()
 
 
 /* sanitize user input */
-int input_clean(char *buf)
+int sanitize_user_input(char *buf)
 {
 	int i, ch;
 	for (i=0; buf[i] != '\0'; i++) {
@@ -136,13 +160,7 @@ int read_cmd(char *buf, int *bf_sz)
 	char *buf_tmp;
 	while (fgets(buf + count, *bf_sz, stdin)) {
 		count = strlen(buf);
-		if (!input_clean(buf)) {   /* sanitize user input */
-			fprintf(stderr, "-sh: bad command\n");
-			return 1;
-		} else if (buf[count-1] == '\n') {
-			buf[count-1] = '\0';
-			break;
-		} else if (count >= (*bf_sz) - 1) { /* cmd buffer too short */
+		if (count >= (*bf_sz) - 1) { 	// cmd buffer too short
 			buf[(*bf_sz)-1] = '\0';
 			buf_tmp = (char*) malloc(2 * (*bf_sz));
 			strcpy(buf_tmp, buf);
@@ -151,6 +169,14 @@ int read_cmd(char *buf, int *bf_sz)
 			(*bf_sz) *= 2;
 		} 
 	}
+	
+	if (!sanitize_user_input(buf)) {   // sanitize user input
+		fprintf(stderr, "-hsh: bad command\n");
+		return 1;
+	} else if (buf[count-1] == '\n') {
+		buf[count-1] = '\0';
+		//break;
+	} 	
 
 	if (ferror(stdin)) { 
 		perror("stdin");
@@ -334,7 +360,6 @@ int do_main()
 	/* exit shell */
 	exit_shell();
 
-	//free(buf_cmd);
 	//stack_dtor(&dir);
 	//stack_dtor(&path);
 	return 0;

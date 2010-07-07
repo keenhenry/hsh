@@ -34,11 +34,14 @@ static struct List paths_list;
 static struct List cmd_queue;
 
 /* current working directory */
-static char *pwd = NULL;
+static char cwd[PATH_SIZE] = {0};
+
+/* system hostname hsh currently running on */
+static char hostname[30] = {0};
 
 /* function prototypes */
 /*
-int input_clean(char *buf);
+int sanitize_user_input(char *buf);
 int read_cmd(char *buf, int *bf_sz);
 int tokenize_cmd(char *args[], char *cmd);
 void cd(const char *dir);
