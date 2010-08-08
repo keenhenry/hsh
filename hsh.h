@@ -33,8 +33,11 @@ static struct List paths_list;
 /* command history queue */
 static struct List cmd_queue;
 
-/* current working directory */
+/* current working directory: in absolute path name */
 static char cwd[PATH_SIZE] = {0};
+
+/* current working directory: in relative path name */
+static char rel_cwd[PATH_SIZE] = {0};
 
 /* system hostname hsh currently running on */
 static char hostname[30] = {0};

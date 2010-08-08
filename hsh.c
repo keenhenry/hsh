@@ -17,6 +17,27 @@ void die_with_error(char *msg)
 }
 
 /**
+ * convert absolute pathname into relative (to home directory) pathname
+ */
+void path_abs2rel(char *rel_path)
+{
+	const char *home_dir = getenv("HOME");
+	char *path = NULL;
+	
+	/* get current working directory in abs pathname */
+	getcwd(cwd, PATH_SIZE);
+
+	/* get the working directory in relative path to home directory */
+	if (strstr(cwd, home_dir)) {  	/* pathname contains home directory */
+		path = cwd + strlen(home_dir); 
+		strncat(rel_path, "~", 1);	
+		strncat(rel_path, path, strlen(path));
+	} else {	/* pathname does not contain home directory */
+		strncpy(rel_path, cwd, strlen(cwd)+1);
+	}
+}
+
+/**
  * Print data of an entry in history queue
  */
 void print_cmd(void *cmd)
@@ -32,7 +53,7 @@ void print_cmd(void *cmd)
 void history()
 {
 	if (is_empty(&cmd_queue))
-		printf("No commands buffered.\n");
+		printf("No commands buffered\n");
 	else	
 		list_traversal(&cmd_queue, print_cmd);
 }
@@ -46,6 +67,7 @@ void init_shell()
 	list_init(&dirs_stack);
 	list_init(&paths_list);
 	list_init(&cmd_queue);
+	
 	if (gethostname(hostname, sizeof(hostname)))
 		die_with_error("gethostname");
 }
@@ -68,8 +90,11 @@ void run_shell()
 		die_with_error("malloc");
 	
 	//while (1) {
+		/* get current working directory in relative path to home directory */
+		path_abs2rel(rel_cwd);
+	
 		/* display shell prompt */
-		printf("%s@%s:%s$ ", getpwuid(getuid())->pw_name, hostname, getcwd(cwd, PATH_SIZE));
+		printf("%s@%s:%s# ", getpwuid(getuid())->pw_name, hostname, rel_cwd);
 
 		// later u should try to replace the absolute path of home directory with '~'
 		/* zero out command buffer */
@@ -133,7 +158,9 @@ void run_shell()
 
 void exit_shell()
 {
-	return;
+	list_dtor(&dirs_stack);
+	list_dtor(&paths_list);
+	list_dtor(&cmd_queue);
 }
 
 
@@ -360,8 +387,6 @@ int do_main()
 	/* exit shell */
 	exit_shell();
 
-	//stack_dtor(&dir);
-	//stack_dtor(&path);
 	return 0;
 }
 
