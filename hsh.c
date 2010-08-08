@@ -32,7 +32,7 @@ void path_abs2rel(char *rel_path)
 		path = cwd + strlen(home_dir); 
 		strncat(rel_path, "~", 1);	
 		strncat(rel_path, path, strlen(path));
-	} else {	/* pathname does not contain home directory */
+	} else {			/* pathname does not contain home directory */
 		strncpy(rel_path, cwd, strlen(cwd)+1);
 	}
 }
@@ -96,7 +96,6 @@ void run_shell()
 		/* display shell prompt */
 		printf("%s@%s:%s# ", getpwuid(getuid())->pw_name, hostname, rel_cwd);
 
-		// later u should try to replace the absolute path of home directory with '~'
 		/* zero out command buffer */
 		memset(buf_cmd, 0, CMD_BUF_SIZE);
 /*	
