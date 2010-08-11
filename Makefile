@@ -6,7 +6,7 @@
 
 CC = gcc
 CFLAGS  = -g -Wall -I.
-LDFLAGS = 
+LDFLAGS = -lreadline
 
 HEAD = list.h hsh.h
 SRCS = hsh.c list.c 

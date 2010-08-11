@@ -17,48 +17,6 @@ void die_with_error(char *msg)
 }
 
 /**
- * convert absolute pathname into relative (to home directory) pathname
- */
-void path_abs2rel(char *rel_path)
-{
-	const char *home_dir = getenv("HOME");
-	char *path = NULL;
-	
-	/* get current working directory in abs pathname */
-	getcwd(cwd, PATH_SIZE);
-
-	/* get the working directory in relative path to home directory */
-	if (strstr(cwd, home_dir)) {  	// pathname contains home directory
-		path = cwd + strlen(home_dir); 
-		strncat(rel_path, "~", 1);	
-		strncat(rel_path, path, strlen(path));
-	} else {			// pathname does not contain home directory
-		strncpy(rel_path, cwd, strlen(cwd)+1);
-	}
-}
-
-/**
- * Print data of an entry in history queue
- */
-void print_cmd(void *cmd)
-{
-	printf("%s\n", (char*)cmd);
-}
-
-/**
- * The routine to handle 'history' builtin:
- * traverse history queue and print every entry 
- * from list front to list tail.
- */
-void history()
-{
-	if (is_empty(&cmd_queue))
-		printf("No commands buffered\n");
-	else	
-		list_traversal(&cmd_queue, print_cmd);
-}
-
-/**
  * initialize some environs before entering shell
  */
 void init_shell()
@@ -67,62 +25,86 @@ void init_shell()
 	list_init(&dirs_stack);
 	list_init(&paths_list);
 	list_init(&cmd_queue);
-	
+
+	/* get hostname */
 	if (gethostname(hostname, sizeof(hostname)))
 		die_with_error("gethostname");
 }
 
-/* sanitize user input */
-int sanitize_user_input(char *buf)
+/**
+ * convert absolute pathname into relative (to home directory) pathname
+ */
+void path_abs2rel()
 {
-	int i, ch;
-	for (i=0; buf[i] != '\0'; i++) {
-		ch = buf[i];
-		if(ch == '\t' || ch == '\n' || (ch > 31 && ch < 127)) 
-			continue;
-		else
-			break;
-	}
+	const char *home_dir = getenv("HOME");
+	char *path = NULL;
 
-	if (i >= strlen(buf)) return 1;
-	else 	return 0;
+	/* zero out buffers */
+	memset(cwd, 0, PATH_SIZE);
+	memset(rel_cwd, 0, PATH_SIZE);
+
+	/* get current working directory in abs pathname */
+	getcwd(cwd, PATH_SIZE);
+
+	/* get the working directory in relative path to home directory */
+	if (strstr(cwd, home_dir)) {  	// pathname contains home directory
+		path = cwd + strlen(home_dir); 
+		strncat(rel_cwd, "~", 1);	
+		strncat(rel_cwd, path, strlen(path));
+	} else {			// pathname does not contain home directory
+		strncpy(rel_cwd, cwd, strlen(cwd)+1);
+	}
 }
 
 /**
- * To read user command into buffer
- * @buf:
- * @bf_sz:
- * @return: 0 when success, otherwise 1 
+ * update command line prompt 
  */
-int read_cmd(char *buf, int *bf_sz)
+void update_prompt(char **prompt_buf)
 {
-	int count = 0;
-	char *buf_tmp;
-	while (fgets(buf + count, *bf_sz, stdin)) {
-		count = strlen(buf);
-		if (count >= (*bf_sz) - 1) { 	// cmd buffer too short
-			buf[(*bf_sz)-1] = '\0';
-			buf_tmp = (char*) malloc(2 * (*bf_sz));
-			strcpy(buf_tmp, buf);
-			free(buf);
-			buf = buf_tmp;
-			(*bf_sz) *= 2;
-		} 
-	}
+	int len = 0;
+	len = strlen(getpwuid(getuid())->pw_name) + 
+	      strlen(hostname) 			  + 
+	      strlen(rel_cwd) 			  +
+	      strlen("@:# ");
 	
-	if (!sanitize_user_input(buf)) {   // sanitize user input
-		fprintf(stderr, "-hsh: bad command\n");
-		return 1;
-	} else if (buf[count-1] == '\n') {
-		buf[count-1] = '\0';
-	} 	
+	/* If the buffer has already been allocated, 
+	 * return the memory to the free pool. */
+	if (*prompt_buf) {
+        	free(*prompt_buf);
+		*prompt_buf = (char *)NULL;
+      	}
 
-	if (ferror(stdin)) { 
-		perror("stdin");
-		return 1;
-	}
+	*prompt_buf = (char*) malloc(len*sizeof(char) + 1);
+	if (*prompt_buf == NULL)
+		die_with_error("malloc");
 
-	return 0;
+	/* make command line prompt */
+	strcat(strcat(*prompt_buf, getpwuid(getuid())->pw_name), "@");
+	strcat(strcat(*prompt_buf, hostname), ":");
+	strcat(strcat(*prompt_buf, rel_cwd), "# ");
+}
+
+/** 
+ * Read a string, and return a pointer to it.
+ * Returns NULL on EOF. 
+ */
+char *rl_gets(char *prompt)
+{
+	/* If the buffer has already been allocated,
+	 * return the memory to the free pool. */
+	if (cmd_buf) {
+        	free(cmd_buf);
+		cmd_buf = (char *)NULL;
+      	}
+
+	/* Get a line from the user. */
+	cmd_buf = readline(prompt);
+
+	/* If the line has any text in it, save it on the history. */
+	if (cmd_buf && *cmd_buf)
+        	printf("add_history\n");//add_history(cmd_buf);
+
+	return (cmd_buf);
 }
 
 /**
@@ -134,29 +116,26 @@ void run_shell()
 	//int error;			/* error code for find_cmd() functions */
 	//pid_t pid;
 	
-	//char wd[PATH_SIZE];		/* working dir path name */
 	//char cmd_path[PATH_SIZE];	/* command search path */
-	char *buf_cmd = NULL;		/* user command buffer */
+	char *prompt  = (char*)NULL;	/* command line prompt */
 	//char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
 	//char cmd_path[PATH_SIZE];	/* command search path */
 	
-	/* initialize command buffer for user inputs */
-	buf_cmd = (char*) malloc(CMD_BUF_SIZE * sizeof(char));
-	if (buf_cmd == NULL)
-		die_with_error("malloc");
-	
-	//while (1) {
+	while (1) {
 		/* get current working directory in relative path to home directory */
-		path_abs2rel(rel_cwd);
+		path_abs2rel();
 	
-		/* display shell prompt */
-		printf("%s@%s:%s# ", getpwuid(getuid())->pw_name, hostname, rel_cwd);
-
-		/* zero out command buffer */
-		memset(buf_cmd, 0, CMD_BUF_SIZE);
-/*	
-		if(read_cmd(buf_cmd, &length) > 0)
+		/* making command line prompt for user */
+		update_prompt(&prompt);
+	
+		/* display shell prompt and read user inputs */
+		if (rl_gets(prompt) == NULL)
 			continue;
+
+		// next task: adding history functionality - 
+		// check GNU history library documentation
+
+		/*	
 		nargs = tokenize_cmd(buf_arg, buf_cmd);		
 		if (nargs >= MAX_NUM_ARGS) {
 			fprintf(stderr, "-sh: too many arguments\n");
@@ -207,8 +186,7 @@ void run_shell()
 			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
 		}
 */
-	//}
-	free(buf_cmd);
+	}
 }
 
 void exit_shell()
@@ -219,7 +197,7 @@ void exit_shell()
 }
 
 
-/* parse user command into tokens */
+/* parse user command into tokens /
 int tokenize_cmd(char *args[], char *cmd)
 {
 	int count = 0;
@@ -234,9 +212,9 @@ int tokenize_cmd(char *args[], char *cmd)
 	args[count] = NULL;
 	
 	return count;
-}
+}*/
 
-/* change current working directory */
+/* change current working directory /
 void cd(const char *dir)
 {
 	if (dir == NULL) {
@@ -246,7 +224,7 @@ void cd(const char *dir)
 		fprintf(stderr, "-sh: cd: %s: %s\n", dir, strerror(errno));
 	}
 }
-
+*/
 /* accessing directory stack 
 void access_stack(const char *op, const char *dir, stackT *s, int nargs)
 {

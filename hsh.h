@@ -44,10 +44,14 @@ static char rel_cwd[PATH_SIZE] = {0};
 /* system hostname hsh currently running on */
 static char hostname[30] = {0};
 
+/* a static variable as a command line buffer */
+static char *cmd_buf = (char*)NULL;	
+
 /* function prototypes */
+char *readline(const char *prompt);
+char *rl_gets(char *prompt);
+
 /*
-int sanitize_user_input(char *buf);
-int read_cmd(char *buf, int *bf_sz);
 int tokenize_cmd(char *args[], char *cmd);
 void cd(const char *dir);
 void access_stack(const char *op, const char *dir, stackT *s, int nargs);
