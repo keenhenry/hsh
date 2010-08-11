@@ -28,11 +28,11 @@ void path_abs2rel(char *rel_path)
 	getcwd(cwd, PATH_SIZE);
 
 	/* get the working directory in relative path to home directory */
-	if (strstr(cwd, home_dir)) {  	/* pathname contains home directory */
+	if (strstr(cwd, home_dir)) {  	// pathname contains home directory
 		path = cwd + strlen(home_dir); 
 		strncat(rel_path, "~", 1);	
 		strncat(rel_path, path, strlen(path));
-	} else {			/* pathname does not contain home directory */
+	} else {			// pathname does not contain home directory
 		strncpy(rel_path, cwd, strlen(cwd)+1);
 	}
 }
@@ -72,6 +72,62 @@ void init_shell()
 		die_with_error("gethostname");
 }
 
+/* sanitize user input */
+int sanitize_user_input(char *buf)
+{
+	int i, ch;
+	for (i=0; buf[i] != '\0'; i++) {
+		ch = buf[i];
+		if(ch == '\t' || ch == '\n' || (ch > 31 && ch < 127)) 
+			continue;
+		else
+			break;
+	}
+
+	if (i >= strlen(buf)) return 1;
+	else 	return 0;
+}
+
+/**
+ * To read user command into buffer
+ * @buf:
+ * @bf_sz:
+ * @return: 0 when success, otherwise 1 
+ */
+int read_cmd(char *buf, int *bf_sz)
+{
+	int count = 0;
+	char *buf_tmp;
+	while (fgets(buf + count, *bf_sz, stdin)) {
+		count = strlen(buf);
+		if (count >= (*bf_sz) - 1) { 	// cmd buffer too short
+			buf[(*bf_sz)-1] = '\0';
+			buf_tmp = (char*) malloc(2 * (*bf_sz));
+			strcpy(buf_tmp, buf);
+			free(buf);
+			buf = buf_tmp;
+			(*bf_sz) *= 2;
+		} 
+	}
+	
+	if (!sanitize_user_input(buf)) {   // sanitize user input
+		fprintf(stderr, "-hsh: bad command\n");
+		return 1;
+	} else if (buf[count-1] == '\n') {
+		buf[count-1] = '\0';
+	} 	
+
+	if (ferror(stdin)) { 
+		perror("stdin");
+		return 1;
+	}
+
+	return 0;
+}
+
+/**
+ * function to run shell 
+ */ 
 void run_shell()
 {
 	//int nargs;			/* # of args */
@@ -162,55 +218,6 @@ void exit_shell()
 	list_dtor(&cmd_queue);
 }
 
-
-/* sanitize user input */
-int sanitize_user_input(char *buf)
-{
-	int i, ch;
-	for (i=0; buf[i] != '\0'; i++) {
-		ch = buf[i];
-		if(ch == '\t' || ch == '\n' || (ch > 31 && ch < 127)) 
-			continue;
-		else
-			break;
-	}
-
-	if (i >= strlen(buf)) return 1;
-	else 	return 0;
-}
-
-/* read a user command into buffer: returns 0 when success, otherwise 1 */
-int read_cmd(char *buf, int *bf_sz)
-{
-	int count = 0;
-	char *buf_tmp;
-	while (fgets(buf + count, *bf_sz, stdin)) {
-		count = strlen(buf);
-		if (count >= (*bf_sz) - 1) { 	// cmd buffer too short
-			buf[(*bf_sz)-1] = '\0';
-			buf_tmp = (char*) malloc(2 * (*bf_sz));
-			strcpy(buf_tmp, buf);
-			free(buf);
-			buf = buf_tmp;
-			(*bf_sz) *= 2;
-		} 
-	}
-	
-	if (!sanitize_user_input(buf)) {   // sanitize user input
-		fprintf(stderr, "-hsh: bad command\n");
-		return 1;
-	} else if (buf[count-1] == '\n') {
-		buf[count-1] = '\0';
-		//break;
-	} 	
-
-	if (ferror(stdin)) { 
-		perror("stdin");
-		return 1;
-	}
-
-	return 0;
-}
 
 /* parse user command into tokens */
 int tokenize_cmd(char *args[], char *cmd)

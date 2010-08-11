@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <readline/readline.h>	/* The GNU readline library */
+#include <readline/history.h>	/* The GNU history library */
 
 /* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
