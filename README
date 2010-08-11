@@ -1,4 +1,4 @@
-# Documentation for sh program
+# Documentation for hsh program
 
 [To compile]: 
 	$ make
@@ -7,8 +7,6 @@
 	$ make test # This will do a test run with valgrind running
 
 [Program Details]:
-It works just as homework description required, with no memory leak.
-
 My shell allows only maximum of 256 arguments on the command line. If that number exceeds
 that limit, my shell will complain. When typing commands in my shell, it will first try to
 search for builtins (cd, exit, pushd, popd, dirs, path), if not found, then sh will then
