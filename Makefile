@@ -8,9 +8,9 @@ CC = gcc
 CFLAGS  = -g -Wall -I.
 LDFLAGS = -lreadline
 
-HEAD = list.h hsh.h
-SRCS = hsh.c list.c 
-OBJS = hsh.o list.o
+HEAD = list.h hsh.h builtins.h
+SRCS = hsh.c list.c builtins.c
+OBJS = hsh.o list.o builtins.o
 TAR  = hsh
 
 build: all
@@ -20,9 +20,7 @@ all: $(TAR)
 $(TAR): $(OBJS)
 	$(CC) -g $(OBJS) $(LDFLAGS) -o $(TAR)
 
-$(TAR).o: $(HEAD) list.c 
-
-#list.o: list.h
+$(TAR).o: $(HEAD) list.c builtins.c
 
 test: build
 	valgrind --leak-check=yes ./hsh

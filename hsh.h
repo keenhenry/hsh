@@ -45,15 +45,22 @@ static char hostname[30] = {0};
 static char *cmd_buf = (char*)NULL;	
 
 /* function prototypes */
-void die_with_error(char *msg);
-char *readline(const char *prompt);
+int do_main(void);
+
+void init_shell();
+void run_shell();
+void exit_shell();
+
 void path_abs2rel();
 void update_prompt(char **prompt_buf);
+char *readline(const char *prompt);
 char *rl_gets(char *prompt);
+
 int cmd_tokenizer(char *args[]);
 
+void die_with_error(char *msg);
+
 /*
-int tokenize_cmd(char *args[], char *cmd);
 void cd(const char *dir);
 void access_stack(const char *op, const char *dir, stackT *s, int nargs);
 int path_cmd(int nargs, char *args[], stackT *s);

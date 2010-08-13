@@ -6,18 +6,29 @@
 
 #include "list.h"
 #include "hsh.h"
+#include "builtins.h"
 
-/**
- * show error message and exit shell
- */
-void die_with_error(char *msg)
+int main(void)
 {
-	perror(msg);
-	exit(EXIT_FAILURE);
+	return do_main();
 }
 
-/**
- * initialize some environs before entering shell
+int do_main(void)
+{
+	/* initialize shell */
+	init_shell();
+	
+	/* run shell */
+	run_shell();
+
+	/* exit shell */
+	exit_shell();
+
+	return 0;
+}
+
+/* Initialize environment variables 
+ * before entering shell.
  */
 void init_shell()
 {
@@ -33,106 +44,7 @@ void init_shell()
 		die_with_error("gethostname");
 }
 
-/**
- * convert absolute pathname into relative (to home directory) pathname
- */
-void path_abs2rel()
-{
-	const char *home_dir = getenv("HOME");
-	char *path = NULL;
-
-	/* zero out buffers */
-	memset(cwd, 0, PATH_SIZE);
-	memset(rel_cwd, 0, PATH_SIZE);
-
-	/* get current working directory in abs pathname */
-	getcwd(cwd, PATH_SIZE);
-
-	/* get the working directory in relative path to home directory */
-	if (strstr(cwd, home_dir)) {  	// pathname contains home directory
-		path = cwd + strlen(home_dir); 
-		strncat(rel_cwd, "~", 1);	
-		strncat(rel_cwd, path, strlen(path));
-	} else {			// pathname does not contain home directory
-		strncpy(rel_cwd, cwd, strlen(cwd)+1);
-	}
-}
-
-/**
- * update command line prompt 
- */
-void update_prompt(char **prompt_buf)
-{
-	int len = strlen(getpwuid(getuid())->pw_name) + 
-	      strlen(hostname) 			  + 
-	      strlen(rel_cwd) 			  +
-	      strlen("@:# ");
-	
-	/* If the buffer has already been allocated, 
-	 * return the memory to the free pool. */
-	if (*prompt_buf) {
-        	free(*prompt_buf);
-		*prompt_buf = (char*) NULL;
-      	}
-
-	*prompt_buf = (char*) malloc(len*sizeof(char) + 1);
-	if (*prompt_buf == NULL)
-		die_with_error("malloc");
-
-	/* make command line prompt */
-	strcat(strcat(*prompt_buf, getpwuid(getuid())->pw_name), "@");
-	strcat(strcat(*prompt_buf, hostname), ":");
-	strcat(strcat(*prompt_buf, rel_cwd), "# ");
-}
-
-/** 
- * Read a string, and return a pointer to it.
- * Returns NULL on EOF. 
- */
-char *rl_gets(char *prompt)
-{
-	/* If the buffer has already been allocated,
-	 * return the memory to the free pool. */
-	if (cmd_buf) {
-        	free(cmd_buf);
-		cmd_buf = (char *)NULL;
-      	}
-
-	/* Get a line from the user. */
-	cmd_buf = readline(prompt);
-
-	/* If the line has any text in it, 
-	 * save it on the history. */
-	if (cmd_buf && *cmd_buf)
-        	add_history(cmd_buf);
-
-	return (cmd_buf);
-}
-
-/** 
- * parse command line into tokens 
- */
-int cmd_tokenizer(char **args)
-{
-	int 	count = 0;
-	char 	*token;
-
-	token = strtok(cmd_buf, " \t");
-	while (token) {
-		args[count++] = token;
-		token = strtok(NULL, " \t");
-	}
-
-	if (count > MAX_NUM_ARGS)
-		count = -1;
-	else
-		args[count] = NULL;
-	
-	return count;
-}
-
-/**
- * primary function to run shell 
+/* Primary function to run shell. 
  */ 
 void run_shell()
 {
@@ -165,6 +77,8 @@ void run_shell()
 			continue;
 		} else if (!strcmp(args[0], builtins[0])) {	// exit
 			break;
+		} else if (!strcmp(args[0], builtins[8])) {
+			history_hdlr(nargs, args);
 		} /*else if (!strcmp(buf_arg[0], builtins[1])) {	// cd *
 			if (nargs == 1)
 				cd(NULL);
@@ -213,11 +127,117 @@ void run_shell()
         	free(cmd_buf);
 }
 
+/* Function to exit shell program.
+ * Cleaning up data structures and
+ * release memory from control.
+ */ 
 void exit_shell()
 {
 	list_dtor(&dirs_stack);
 	list_dtor(&paths_list);
 	clear_history();
+}
+
+/* Convert absolute pathname into relative 
+ * (to home directory) pathname.
+ */
+void path_abs2rel()
+{
+	const char *home_dir = getenv("HOME");
+	char *path = NULL;
+
+	/* zero out buffers */
+	memset(cwd, 0, PATH_SIZE);
+	memset(rel_cwd, 0, PATH_SIZE);
+
+	/* get current working directory in abs pathname */
+	getcwd(cwd, PATH_SIZE);
+
+	/* make relative working directory path */
+	if (strstr(cwd, home_dir)) {  	
+		path = cwd + strlen(home_dir); 
+		strncat(rel_cwd, "~", 1);	
+		strncat(rel_cwd, path, strlen(path));
+	} else {			
+		strncpy(rel_cwd, cwd, strlen(cwd)+1);
+	}
+}
+
+/* Update command line prompt.
+ * @prompt_buf: buffer to hold the prompt string
+ * @return:
+ */
+void update_prompt(char **prompt_buf)
+{
+	int len = strlen(getpwuid(getuid())->pw_name) + 
+	      strlen(hostname) 			  + 
+	      strlen(rel_cwd) 			  +
+	      strlen("@:# ");
+	
+	/* If the buffer has already been allocated, 
+	 * return the memory to the free pool. */
+	if (*prompt_buf) {
+        	free(*prompt_buf);
+		*prompt_buf = (char*) NULL;
+      	}
+
+	*prompt_buf = (char*) malloc(len*sizeof(char) + 1);
+	if (*prompt_buf == NULL)
+		die_with_error("malloc");
+
+	/* make command line prompt */
+	strcat(strcat(*prompt_buf, getpwuid(getuid())->pw_name), "@");
+	strcat(strcat(*prompt_buf, hostname), ":");
+	strcat(strcat(*prompt_buf, rel_cwd), "# ");
+}
+
+/* Readline_Gets function: 
+ * Read a string, and return a pointer to it.
+ * @prompt: prompt string buffer
+ * @return: NULL on EOF && emptry string, 
+ * otherwise a pointer to the string read. 
+ */
+char *rl_gets(char *prompt)
+{
+	/* If the buffer has already been allocated,
+	 * return the memory to the free pool. */
+	if (cmd_buf) {
+        	free(cmd_buf);
+		cmd_buf = (char *)NULL;
+      	}
+
+	/* Get a line from the user. */
+	cmd_buf = readline(prompt);
+
+	/* If the line has any text in it, 
+	 * save it on the history. */
+	if (cmd_buf && *cmd_buf)
+        	add_history(cmd_buf);
+
+	return (cmd_buf);
+}
+
+/* Parse command line string into tokens.
+ * @args: a buffer to hold tokens
+ * @return: # of tokens; -1 when too much tokens
+ */
+int cmd_tokenizer(char **args)
+{
+	int 	count = 0;
+	char 	*token;
+
+	token = strtok(cmd_buf, " \t");
+	while (token) {
+		args[count++] = token;
+		token = strtok(NULL, " \t");
+	}
+
+	if (count > MAX_NUM_ARGS)
+		count = -1;
+	else
+		args[count] = NULL;
+	
+	return count;
 }
 
 /* change current working directory /
@@ -366,21 +386,11 @@ int find_cmd(const stackT *list, const char *cmd, char *path_buf)
 	return -1;	 command not found
 }*/
 
-int do_main()
+/**
+ * show error message and exit shell
+ */
+void die_with_error(char *msg)
 {
-	/* initialize shell */
-	init_shell();
-	
-	/* run shell */
-	run_shell();
-
-	/* exit shell */
-	exit_shell();
-
-	return 0;
-}
-
-int main(void)
-{
-	return do_main();
+	perror(msg);
+	exit(EXIT_FAILURE);
 }
