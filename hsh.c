@@ -24,7 +24,9 @@ void init_shell()
 	/* initialize environmental variables for shell */
 	list_init(&dirs_stack);
 	list_init(&paths_list);
-	list_init(&cmd_queue);
+	
+	/* start using history */
+	using_history();
 
 	/* get hostname */
 	if (gethostname(hostname, sizeof(hostname)))
@@ -61,8 +63,7 @@ void path_abs2rel()
  */
 void update_prompt(char **prompt_buf)
 {
-	int len = 0;
-	len = strlen(getpwuid(getuid())->pw_name) + 
+	int len = strlen(getpwuid(getuid())->pw_name) + 
 	      strlen(hostname) 			  + 
 	      strlen(rel_cwd) 			  +
 	      strlen("@:# ");
@@ -71,7 +72,7 @@ void update_prompt(char **prompt_buf)
 	 * return the memory to the free pool. */
 	if (*prompt_buf) {
         	free(*prompt_buf);
-		*prompt_buf = (char *)NULL;
+		*prompt_buf = (char*) NULL;
       	}
 
 	*prompt_buf = (char*) malloc(len*sizeof(char) + 1);
@@ -100,27 +101,50 @@ char *rl_gets(char *prompt)
 	/* Get a line from the user. */
 	cmd_buf = readline(prompt);
 
-	/* If the line has any text in it, save it on the history. */
+	/* If the line has any text in it, 
+	 * save it on the history. */
 	if (cmd_buf && *cmd_buf)
-        	printf("add_history\n");//add_history(cmd_buf);
+        	add_history(cmd_buf);
 
 	return (cmd_buf);
 }
 
+/** 
+ * parse command line into tokens 
+ */
+int cmd_tokenizer(char **args)
+{
+	int 	count = 0;
+	char 	*token;
+
+	token = strtok(cmd_buf, " \t");
+	while (token) {
+		args[count++] = token;
+		token = strtok(NULL, " \t");
+	}
+
+	if (count > MAX_NUM_ARGS)
+		count = -1;
+	else
+		args[count] = NULL;
+	
+	return count;
+}
+
 /**
- * function to run shell 
+ * primary function to run shell 
  */ 
 void run_shell()
 {
-	//int nargs;			/* # of args */
+	int nargs;			/* # of args */
 	//int error;			/* error code for find_cmd() functions */
 	//pid_t pid;
 	
 	//char cmd_path[PATH_SIZE];	/* command search path */
 	char *prompt  = (char*)NULL;	/* command line prompt */
-	//char *buf_arg[MAX_NUM_ARGS];	/* buffer holding cmdline words */
+	char *args[MAX_NUM_ARGS+1];	/* buffer holding cmd line args */
 	//char cmd_path[PATH_SIZE];	/* command search path */
-	
+
 	while (1) {
 		/* get current working directory in relative path to home directory */
 		path_abs2rel();
@@ -129,25 +153,19 @@ void run_shell()
 		update_prompt(&prompt);
 	
 		/* display shell prompt and read user inputs */
-		if (rl_gets(prompt) == NULL)
+		if (rl_gets(prompt) == NULL || !*cmd_buf)
 			continue;
+		
+		/* tokenize command line string */
+		nargs = cmd_tokenizer(args);
 
-		// next task: adding history functionality - 
-		// check GNU history library documentation
-
-		/*	
-		nargs = tokenize_cmd(buf_arg, buf_cmd);		
-		if (nargs >= MAX_NUM_ARGS) {
-			fprintf(stderr, "-sh: too many arguments\n");
+		/* execute builtins if args[0] found in builtins[] */
+		if (nargs == -1) {
+			fprintf(stderr, "-hsh: too many arguments\n");
 			continue;
-		}
-
-		* check for builtins *
-		if (nargs == 0)
-			continue;
-		if (!strcmp(buf_arg[0], builtins[0])) 	// exit *
+		} else if (!strcmp(args[0], builtins[0])) {	// exit
 			break;
-		if (!strcmp(buf_arg[0], builtins[1])) {	// cd *
+		} /*else if (!strcmp(buf_arg[0], builtins[1])) {	// cd *
 			if (nargs == 1)
 				cd(NULL);
 			else
@@ -187,32 +205,20 @@ void run_shell()
 		}
 */
 	}
+
+	/* release memory from control */
+	if (prompt)
+        	free(prompt);
+	if (cmd_buf)
+        	free(cmd_buf);
 }
 
 void exit_shell()
 {
 	list_dtor(&dirs_stack);
 	list_dtor(&paths_list);
-	list_dtor(&cmd_queue);
+	clear_history();
 }
-
-
-/* parse user command into tokens /
-int tokenize_cmd(char *args[], char *cmd)
-{
-	int count = 0;
-	char *token;
-	const char delim[] = " \t";
-
-	token = strtok(cmd, delim);
-	while (token){
-		args[count++] = token;
-		token = strtok(NULL, delim);
-	}
-	args[count] = NULL;
-	
-	return count;
-}*/
 
 /* change current working directory /
 void cd(const char *dir)

@@ -32,9 +32,6 @@ static struct List dirs_stack;
 /* pathname list */
 static struct List paths_list;
 
-/* command history queue */
-static struct List cmd_queue;
-
 /* current working directory: in absolute path name */
 static char cwd[PATH_SIZE] = {0};
 
@@ -48,8 +45,12 @@ static char hostname[30] = {0};
 static char *cmd_buf = (char*)NULL;	
 
 /* function prototypes */
+void die_with_error(char *msg);
 char *readline(const char *prompt);
+void path_abs2rel();
+void update_prompt(char **prompt_buf);
 char *rl_gets(char *prompt);
+int cmd_tokenizer(char *args[]);
 
 /*
 int tokenize_cmd(char *args[], char *cmd);
