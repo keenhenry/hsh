@@ -67,7 +67,6 @@ void run_shell()
 		/* display shell prompt and read user inputs */
 		if (rl_gets(prompt) == NULL || !*cmd_buf)
 			continue;
-		
 		/* tokenize command line string */
 		nargs = cmd_tokenizer(args);
 
@@ -77,22 +76,16 @@ void run_shell()
 			continue;
 		} else if (!strcmp(args[0], builtins[0])) {	// exit
 			break;
-		//} else if (!strcmp(args[0], builtins[1])) {	// cd
-		//	cd_hdlr();
+		} else if (!strcmp(args[0], builtins[1])) {	// cd
+			cd_hdlr(nargs, args);
+			continue;
 		//} else if (!strcmp(args[0], builtins[2])) {	// echo
 		//	echo_hdlr();
 		} else if (!strcmp(args[0], builtins[3])) {	// pwd
 			pwd_hdlr();
 		} else if (!strcmp(args[0], builtins[8])) {
 			history_hdlr(nargs, args);
-		} /*else if (!strcmp(buf_arg[0], builtins[1])) {	// cd *
-			if (nargs == 1)
-				cd(NULL);
-			else
-				cd(buf_arg[1]);
-			continue;
-		}	
-		if (!strcmp(buf_arg[0], builtins[2]) || 
+		}/* else if (!strcmp(buf_arg[0], builtins[2]) || 
 		    !strcmp(buf_arg[0], builtins[3]) || 
 		    !strcmp(buf_arg[0], builtins[4])) {	// pushd, popd, dirs *
 		       	access_stack(buf_arg[0], buf_arg[1], &dir, nargs);
@@ -175,10 +168,8 @@ void path_abs2rel()
  */
 void update_prompt(char **prompt_buf)
 {
-	int len = strlen(getpwuid(getuid())->pw_name) + 
-	      strlen(hostname) 			  + 
-	      strlen(rel_cwd) 			  +
-	      strlen("@:# ");
+	int len = strlen(getenv("USERNAME")) + strlen(hostname) 
+		+ strlen(rel_cwd) + strlen("@:# ");
 	
 	/* If the buffer has already been allocated, 
 	 * return the memory to the free pool. */
@@ -190,9 +181,11 @@ void update_prompt(char **prompt_buf)
 	*prompt_buf = (char*) malloc(len*sizeof(char) + 1);
 	if (*prompt_buf == NULL)
 		die_with_error("malloc");
+	else	
+		memset(*prompt_buf, 0, sizeof(*prompt_buf));
 
 	/* make command line prompt */
-	strcat(strcat(*prompt_buf, getpwuid(getuid())->pw_name), "@");
+	strcat(strcat(*prompt_buf, getenv("USERNAME")), "@");
 	strcat(strcat(*prompt_buf, hostname), ":");
 	strcat(strcat(*prompt_buf, rel_cwd), "# ");
 }
@@ -246,17 +239,6 @@ int cmd_tokenizer(char **args)
 	return count;
 }
 
-/* change current working directory /
-void cd(const char *dir)
-{
-	if (dir == NULL) {
-		if (chdir(getpwuid(getuid())->pw_dir) < 0)
-			perror("-sh: cd: chdir");
-	} else if (chdir(dir) < 0) {  
-		fprintf(stderr, "-sh: cd: %s: %s\n", dir, strerror(errno));
-	}
-}
-*/
 /* accessing directory stack 
 void access_stack(const char *op, const char *dir, stackT *s, int nargs)
 {

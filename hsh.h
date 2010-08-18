@@ -33,7 +33,7 @@ static struct List dirs_stack;
 static struct List paths_list;
 
 /* current working directory: in absolute path name */
-static char cwd[PATH_SIZE] = {0};
+char cwd[PATH_SIZE] = {0};
 
 /* current working directory: in relative path name */
 static char rel_cwd[PATH_SIZE] = {0};
