@@ -6,6 +6,15 @@
 
 #include "builtins.h"
 
+/* pwd builtin handler.
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ */
+void pwd_hdlr()
+{
+	printf("%s\n", getenv("PWD"));
+}
+
 /* History builtin exception handling
  * @nargs: # of arguments in command line
  * @args: command line argument buffer

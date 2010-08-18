@@ -8,6 +8,7 @@
 #include <readline/history.h>	/* The GNU history library */
 
 /* function signatures */
+void pwd_hdlr();
 int  his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist);
 void print_history(int n_of_entries, HIST_ENTRY **hlist);
 void history_hdlr(int nargs, char **args);
