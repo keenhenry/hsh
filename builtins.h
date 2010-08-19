@@ -15,6 +15,7 @@ extern char cwd[];	// can't use char *cwd; i don't know why
 /* function signatures */
 int cd_exception_hdlr(int nargs, char **args);
 void cd_hdlr(int nargs, char **args);
+void echo_hdlr(int nargs, char **args);
 void pwd_hdlr();
 int  his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist);
 void print_history(int n_of_entries, HIST_ENTRY **hlist);

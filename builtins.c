@@ -39,6 +39,18 @@ void cd_hdlr(int nargs, char **args)
 	if (cd_exception_hdlr(nargs, args));
 }
 
+/* echo builtin handler.
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ */
+void echo_hdlr(int nargs, char **args)
+{
+	int i;
+	for (i = 1; i < nargs; i++)
+		printf("%s%s", args[i], (i < nargs-1) ? " " : "");
+	printf("\n");
+}
+
 /* pwd builtin handler.
  * @nargs: # of arguments in command line
  * @args: command line argument buffer

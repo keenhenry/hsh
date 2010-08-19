@@ -78,12 +78,12 @@ void run_shell()
 			break;
 		} else if (!strcmp(args[0], builtins[1])) {	// cd
 			cd_hdlr(nargs, args);
-			continue;
-		//} else if (!strcmp(args[0], builtins[2])) {	// echo
-		//	echo_hdlr();
+			//continue;
+		} else if (!strcmp(args[0], builtins[2])) {	// echo
+			echo_hdlr(nargs, args);
 		} else if (!strcmp(args[0], builtins[3])) {	// pwd
 			pwd_hdlr();
-		} else if (!strcmp(args[0], builtins[8])) {
+		} else if (!strcmp(args[0], builtins[8])) {	// history
 			history_hdlr(nargs, args);
 		}/* else if (!strcmp(buf_arg[0], builtins[2]) || 
 		    !strcmp(buf_arg[0], builtins[3]) || 
