@@ -221,3 +221,24 @@ void history_hdlr(int nargs, char **args)
 	else if (nargs == 2) 	// Two command line arguments
 		print_history(atoi(args[1]), the_list);
 }
+
+/* Helper function to release 
+ * memory of nodes in a list.
+ * @list: the list to be processed
+ */ 
+static void clear_list(struct List *list)
+{
+	while (list->size) {
+		free(top(list));	// free node data
+		pop(list);		// free node
+	}
+}
+
+/* Application specific list memory reclaim function 
+ * @list: the list to be cleaned up
+ */
+void list_clean(struct List *list)
+{
+	clear_list(list);
+	list_dtor(list);
+}

@@ -140,8 +140,8 @@ void run_shell()
  */ 
 void exit_shell()
 {
-	list_dtor(&dirs_stack);
-	list_dtor(&paths_list);
+	list_clean(&dirs_stack);
+	list_clean(&paths_list);
 	clear_history();
 }
 

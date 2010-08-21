@@ -35,4 +35,5 @@ int  his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist);
 void print_history(int n_of_entries, HIST_ENTRY **hlist);
 void history_hdlr(int nargs, char **args);
 
+void list_clean(struct List *list);
 #endif
