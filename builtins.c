@@ -169,14 +169,14 @@ void pushd_hdlr(int nargs, char **args)
 	
 	/* allocate memory for directory name;
 	 * the list API does not manage user data! */
-	if (!(dir = (char*) malloc(strlen(rel_cwd)+1))) {
+	if (!(dir = (char*) malloc(strlen(cwd)+1))) {
 		perror("malloc");
 		return;
 	}
 	
 	/* push directory to stack */
 	memset(dir, 0, 1);
-	push(&dirs_stack, strcpy(dir, rel_cwd));
+	push(&dirs_stack, strcpy(dir, cwd));
 }
 
 /* popd builtin handler.
@@ -207,7 +207,9 @@ void dirs_hdlr(int nargs, char **args)
 {
 	if (dirs_exception_hdlr(nargs, args))
 		return;
+	
 	list_traversal(&dirs_stack, print_stack_element);
+	printf("\n");
 }
 
 /* History builtin handler.

@@ -23,7 +23,7 @@ $(TAR): $(OBJS)
 $(TAR).o: $(HEAD) list.c builtins.c
 
 test: build
-	valgrind --leak-check=full --show-reachable=yes ./hsh
+	valgrind -v --leak-check=full --show-reachable=yes ./hsh
 
 .PHONY: clean
 clean:
