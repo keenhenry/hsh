@@ -36,7 +36,7 @@ struct List paths_list;
 char cwd[PATH_SIZE] = {0};
 
 /* current working directory: in relative path name */
-static char rel_cwd[PATH_SIZE] = {0};
+char rel_cwd[PATH_SIZE] = {0};
 
 /* system hostname hsh currently running on */
 static char hostname[30] = {0};
