@@ -27,10 +27,10 @@
 static const char *builtins[] = {"exit", "cd", "echo", "pwd", "pushd", "popd", "dirs", "path", "history", "kill"};
 
 /* directory stack */
-static struct List dirs_stack;
+struct List dirs_stack;
 
 /* pathname list */
-static struct List paths_list;
+struct List paths_list;
 
 /* current working directory: in absolute path name */
 char cwd[PATH_SIZE] = {0};

@@ -83,6 +83,14 @@ void run_shell()
 			echo_hdlr(nargs, args);
 		} else if (!strcmp(args[0], builtins[3])) {	// pwd
 			pwd_hdlr();
+		} else if (!strcmp(args[0], builtins[4])) {	// pushd
+			pushd_hdlr(nargs, args);
+		} else if (!strcmp(args[0], builtins[5])) {	// popd
+			popd_hdlr(args);
+		} else if (!strcmp(args[0], builtins[6])) {	// dirs
+			dirs_hdlr(nargs, args);
+		//} else if (!strcmp(args[0], builtins[7])) {	// path
+		//	path_hdlr();
 		} else if (!strcmp(args[0], builtins[8])) {	// history
 			history_hdlr(nargs, args);
 		}/* else if (!strcmp(buf_arg[0], builtins[2]) || 
@@ -239,36 +247,9 @@ int cmd_tokenizer(char **args)
 	return count;
 }
 
-/* accessing directory stack 
-void access_stack(const char *op, const char *dir, stackT *s, int nargs)
-{
-	if(!strcmp(op, "pushd")){
-		push(s, NULL);
-		if (nargs == 1)
-			cd(NULL);
-		else
-			cd(dir);
-	}	
-	if(!strcmp(op, "popd")){
-		if (is_empty(s)) {
-			fprintf(stderr, "-sh: popd: directory stack empty\n");
-			return;
-		}
-		if (nargs > 1) {
-			fprintf(stderr, "-sh: usage: popd\n");
-			return;
-		}
-		cd(top(s));
-		pop(s);
-	}	
-	if(!strcmp(op, "dirs")) {
-		if (nargs > 1) {
-			fprintf(stderr, "-sh: usage: dirs\n");
-			return;
-		}
-		show_stack(s, '\n');
-	}
-}*/
+/* the next step should be creating hsh version of
+ * clear_dir_stack and clear path_list function 
+ */
 
 /* parsing path command 
 int path_cmd(int nargs, char *args[], stackT *s)

@@ -23,10 +23,9 @@ int cd_exception_hdlr(int nargs, char **args)
 	
 	/* exception handling */
 	if (exception == 1)
-		perror("-hsh: cd: chdir");
+		fprintf(stderr, "-hsh: %s: %s\n", args[0], strerror(errno));
 	else if (exception == 2)
 		fprintf(stderr, "-hsh: %s: %s: %s\n", args[0], args[1], strerror(errno));
-
 	return exception;
 }
 
@@ -58,6 +57,107 @@ void echo_hdlr(int nargs, char **args)
 void pwd_hdlr()
 {
 	printf("%s\n", cwd);
+}
+
+/* pushd builtin handler.
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ */
+void pushd_hdlr(int nargs, char **args)
+{
+	char *dir = NULL;
+
+	/* check chdir exceptions */
+	if (cd_exception_hdlr(nargs, args))
+		return;
+	
+	/* allocate memory for directory name;
+	 * the list API does not manage user data! */
+	if (!(dir = (char*) malloc(strlen(cwd)+1))) {
+		perror("malloc");
+		return;
+	}
+	
+	/* push directory to stack */
+	memset(dir, 0, 1);
+	push(&dirs_stack, strcpy(dir, cwd));
+}
+
+/* popd builtin exception handling.
+ * @args: command line argument buffer
+ * @return: exception code; 0 for NO EXCEPTION OCCURS
+ */
+int popd_exception_hdlr(char **args)
+{
+	int exception = 0;
+
+	/* check if stack is empty */
+	if (is_empty(&dirs_stack))
+		exception = 1;
+	
+	/* exception handling */
+	if (exception == 1)
+		fprintf(stderr, "-hsh: %s: directory stack empty\n", args[0]);
+
+	return exception;
+}
+
+/* popd builtin handler.
+ * @stack: directory stack holding directory names
+ * @args: command line argument buffer
+ */
+void popd_hdlr(char **args)
+{
+	char *dir = NULL;
+
+	/* check exception */
+	if (popd_exception_hdlr(args))
+		return;
+
+	dir = top(&dirs_stack);
+	if (chdir(dir) < 0) {	/* change working directory */
+		perror("chdir");
+	} else {		/* pop stack */
+		free(dir);
+		pop(&dirs_stack);
+	}
+}
+
+/* dirs builtin exception handling
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ * @return: exception code; 0 for NO EXCEPTION OCCURS
+ */
+int dirs_exception_hdlr(int nargs, char **args)
+{
+	int exception = 0;
+
+	if (nargs > 1)
+		exception = 1;
+	
+	/* exception handling */
+	if (exception == 1)
+		fprintf(stderr, "-hsh: %s: too many arguments\nUsage: %s\n", args[0], args[0]);
+	return exception;
+}
+
+/* Print a single element on directory stack.
+ * @data: the data the element points to
+ */
+void print_stack_element(void *data)
+{
+	printf("%s\n", (char*)data);
+}
+
+/* dirs builtin handler.
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ */
+void dirs_hdlr(int nargs, char **args)
+{
+	if (dirs_exception_hdlr(nargs, args))
+		return;
+	list_traversal(&dirs_stack, print_stack_element);
 }
 
 /* History builtin exception handling

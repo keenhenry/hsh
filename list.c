@@ -67,7 +67,7 @@ void pop(struct List *list)
 	struct Node *curr = list->back;
 	
 	if (list->size <= 0) {
-		fprintf(stderr, "Stack empty\n");
+		fprintf(stderr, "stack empty\n");
 		return;
 	}
 
