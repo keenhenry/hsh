@@ -275,6 +275,12 @@ void clean_shell()
 	clear_history();
 }
 
+//===================================================================//
+// 	     	 						     //
+//                 Interface to Readline Completion                  //
+// 	     	 						     //
+//===================================================================//
+
 /* parsing path command 
 int path_cmd(int nargs, char *args[], stackT *s)
 {
