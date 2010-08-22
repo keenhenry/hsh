@@ -6,9 +6,6 @@
 
 #include "builtins.h"
 
-/* A structure which contains information on the shell 
- * builtin commands this program can understand */
-
 BUILTIN builtins[] = {
     { "exit", "Exit hsh"			   , builtin_exit },
     { "cd", "Change directory"		   	   , builtin_cd },
