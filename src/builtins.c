@@ -105,6 +105,11 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 	/* check for numeric argument */
 	else if (nargs == 2 && !atoi(args[1]))
 		exception = 1;
+	/* check validity of numeric argument */
+	else if (nargs == 2 && (atoi(args[1]) > history_length))
+		exception = 2;
+	else if (nargs == 2 && (atoi(args[1]) < 0))
+		exception = 2;
 
 	/* exception handling */
 	if (exception == -1)
@@ -114,6 +119,9 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 				args[0], args[0]);
 	else if (exception == 1)
 		fprintf(stderr, "-hsh: %s: %s: numeric argument required\n", 
+				args[0], args[1]);
+	else if (exception == 2)
+		fprintf(stderr, "-hsh: %s: %s: invalid option\n", 
 				args[0], args[1]);
 	return exception;
 }
