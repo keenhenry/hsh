@@ -102,13 +102,15 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 	/* check for # of arguments */
 	else if (nargs > 2)
 		exception = -2;
+	/* a hack for atoi() funcion; this case is not an exception! */
+	else if (nargs == 2 && strcmp(args[1], "0")==0)
+		;
 	/* check for numeric argument */
 	else if (nargs == 2 && !atoi(args[1]))
 		exception = 1;
 	/* check validity of numeric argument */
-	else if (nargs == 2 && (atoi(args[1]) > history_length))
-		exception = 2;
-	else if (nargs == 2 && (atoi(args[1]) < 0))
+	else if (nargs == 2 && (atoi(args[1]) > history_length || 
+				atoi(args[1]) < 0))
 		exception = 2;
 
 	/* exception handling */
