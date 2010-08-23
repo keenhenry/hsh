@@ -213,6 +213,10 @@ int builtin_pushd(int nargs, char **args)
 	/* push directory to stack */
 	memset(dir, 0, 1);
 	push(&dirs_stack, strcpy(dir, cwd));
+
+	/* print out directory stack */
+	list_traversal(&dirs_stack, print_stack_element); 
+	printf("<\n");
 	return 0;
 }
 
@@ -235,6 +239,10 @@ int builtin_popd(int nargs, char **args)
 		free(dir);
 		pop(&dirs_stack);
 	}
+	
+	/* print out directory stack */
+	list_traversal(&dirs_stack, print_stack_element); 
+	printf("<\n");
 	return 0;
 }
 
@@ -249,7 +257,7 @@ int builtin_dirs(int nargs, char **args)
 		return 0;
 	
 	list_traversal(&dirs_stack, print_stack_element);
-	printf("\n");
+	printf("<\n");		      // stack top symbol
 	return 0;
 }
 
