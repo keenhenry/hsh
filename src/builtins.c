@@ -220,9 +220,12 @@ int builtin_pushd(int nargs, char **args)
 		return 0;
 	}
 	
-	/* push directory to stack */
 	memset(dir, 0, 1);
-	push(&dirs_stack, strcpy(dir, cwd));
+	
+	/* push directory to stack; but never push directory
+	 * that is identical to top element on the stack */
+	if (is_empty(&dirs_stack) || strcmp(top(&dirs_stack), cwd))
+		push(&dirs_stack, strcpy(dir, cwd));
 
 	/* print out directory stack */
 	list_traversal(&dirs_stack, print_stack_element); 
