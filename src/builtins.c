@@ -134,9 +134,17 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 
 /* Print a single element on directory stack.
  * @data: the data the element points to */
-static inline void print_stack_element(void *data) 
-{ 
-	printf("%s ", (char*)data); 
+static void print_stack_element(void *data) 
+{
+	char *rel_path = (char *) NULL;
+
+	if (strstr((char*)data, getenv("HOME")))
+		rel_path = (char*) data + strlen(getenv("HOME"));
+	
+	if (rel_path)
+		printf("~%s ", rel_path);
+	else
+		printf("%s ", (char *) data);
 }
 
 /* History printing function.
@@ -245,7 +253,6 @@ int builtin_popd(int nargs, char **args)
 	printf("<\n");
 	return 0;
 }
-
 
 /* dirs builtin function: display directory names on stack
  * @nargs: # of arguments in command line
