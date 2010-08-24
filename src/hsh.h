@@ -15,6 +15,7 @@
 #include <readline/history.h>	/* The GNU history library */
 
 extern BUILTIN builtins[];
+extern char *xmalloc PARAMS((size_t));	/* check what does this line mean */
 
 /* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
@@ -51,6 +52,9 @@ void execute_cmd();
 void clean_shell();
 
 char *readline(const char *prompt);
+void initialize_readline (void);
+char *command_generator(const char *, int);
+char **hsh_completion(const char *, int, int);
 
 /*
 int path_cmd(int nargs, char *args[], stackT *s);

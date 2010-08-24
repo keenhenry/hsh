@@ -46,6 +46,15 @@ static void die_with_error(char *msg)
 // 	     	 						     //
 //===================================================================//
 
+char *dupstr (char *s)
+{
+    char *r;
+
+    r = xmalloc (strlen (s) + 1);
+    strcpy (r, s);
+    return (r);
+}
+
 /* Convert absolute pathname into relative 
  * (to home directory) pathname. */
 static void path_abs2rel()
@@ -174,6 +183,69 @@ static int execute_builtin(int nargs, char **args)
 
 //===================================================================//
 // 	     	 						     //
+//                 Interface to Readline Completion                  //
+// 	     	 						     //
+//===================================================================//
+
+/* Tell the GNU Readline library how to complete. We want to try to complete
+ * on builtin names if this is the first word in the line, or on filenames
+ * if not. */
+void initialize_readline (void)
+{
+    /* Allow conditional parsing of the ~/.inputrc file. */
+    rl_readline_name = "hsh";
+
+    /* Tell the completer that we want a crack first. */
+    rl_attempted_completion_function = hsh_completion;
+}
+
+/* Attempt to complete on the contents of TEXT.  START and END bound the
+ * region of rl_line_buffer that contains the word to complete.  TEXT is
+ * the word to complete.  We can use the entire contents of rl_line_buffer
+ * in case we want to do some simple parsing.  Return the array of matches,
+ * or NULL if there aren't any. */
+char **hsh_completion (const char *text, int start, int end)
+{
+    char **matches = (char **)NULL;
+
+    /* If this word is at the start of the line, then it is a command
+     * to complete.  Otherwise it is the name of a file in the current
+     * directory. */
+    if (start == 0)
+        matches = rl_completion_matches (text, command_generator);
+
+    return (matches);
+}
+
+/* Generator function for command completion.  STATE lets us know whether
+ * to start from scratch; without any state (i.e. STATE == 0), then we
+ * start at the top of the list. */
+char *command_generator (const char *text, int state)
+{
+    static int list_index, len;
+    char *name;
+
+    /* If this is a new word to complete, initialize now.  This includes
+     * saving the length of TEXT for efficiency, and initializing the index
+     * variable to 0. */
+    if (!state) {
+	list_index = 0;
+	len = strlen (text);
+    }
+
+    /* Return the next name which partially matches from the command list. */
+    while ((name = builtins[list_index].name)) {
+        list_index++;
+        if (strncmp (name, text, len) == 0)
+            return (dupstr(name));
+    }
+
+    /* If no names matched, then return NULL. */
+    return ((char *)NULL);
+}
+
+//===================================================================//
+// 	     	 						     //
 // 	     	 	Hsh Primary Functions	    	     	     //
 // 	     	 						     //
 //===================================================================//
@@ -185,6 +257,9 @@ void init_shell()
 	/* initialize environmental variables for shell */
 	list_init(&dirs_stack);
 	list_init(&paths_list);
+
+	/* Bind our completer. */	
+	initialize_readline();
 	
 	/* start using history */
 	using_history();
@@ -274,57 +349,6 @@ void clean_shell()
 	list_clean(&paths_list);
 	clear_history();
 }
-
-//===================================================================//
-// 	     	 						     //
-//                 Interface to Readline Completion                  //
-// 	     	 						     //
-//===================================================================//
-
-/* parsing path command 
-int path_cmd(int nargs, char *args[], stackT *s)
-{
-	struct stat buf;
-	
-	if (nargs == 1) {
-		show_stack(s, ':');
-		if (size(s)) printf("\n");
-		return 0;
-	}
-
-	if (nargs != 3) {
-		fprintf(stderr, "-sh: usage: %s [+|-] [/some/dir]\n", args[0]);
-		return 1;	// to indicate error occurs 
-	}
-
-	if (!strcmp(args[1], "+")) {
-		if (stat(args[2], &buf) < 0) {
-			fprintf(stderr, "-sh: path: %s\n", strerror(errno));
-			return 1;
-		}
-		if (find_node(s, args[2]) >= 0) {// detecting duplicated path 
-			fprintf(stderr, "-sh: path: %s already in path list\n", args[2]);
-			return 1;
-		}
-		push(s, args[2]);
-		return 0;
-	}
-
-	if (!strcmp(args[1], "-")) {
-		if (is_empty(s)) {
-			fprintf(stderr, "-sh: path: path list empty\n");
-			return 1;
-		}
-		if (rm_node(s, find_node(s, args[2])) > 0) {
-			fprintf(stderr, "-sh: path: %s is not in path list\n", args[2]);
-			return 1;
-		}
-		return 0;
-	}
-
-	fprintf(stderr, "-sh: path: %s: invalid argument\n", args[1]);
-	return 1;	
-}*/
 
 /* to find the executables 
 int find_cmd(const stackT *list, const char *cmd, char *path_buf)
