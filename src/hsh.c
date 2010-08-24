@@ -271,7 +271,9 @@ void execute_cmd()
 void clean_shell()
 {
 	list_clean(&dirs_stack);
+	printf("clean dirs_stack\n");
 	list_clean(&paths_list);
+	printf("clean dirs_stack\n");
 	clear_history();
 }
 

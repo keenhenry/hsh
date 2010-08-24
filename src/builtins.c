@@ -54,17 +54,33 @@ static int cd_exception_hdlr(int nargs, char **args)
 /* popd builtin exception handling.
  * @args: command line argument buffer
  * @return: exception code; 0 for NO EXCEPTION OCCURS */
-static int popd_exception_hdlr(char **args)
+static int popd_exception_hdlr(int nargs, char **args)
 {
 	int exception = 0;
 
-	/* check if stack is empty */
-	if (is_empty(&dirs_stack))
+	if (nargs > 2)
 		exception = 1;
+	/* a hack for atoi() funcion; this case is not an exception! */
+	else if (nargs==2 && strcmp(args[1],"-0")==0)
+		;
+	else if (nargs==2 && atoi(args[1])>=0)
+		exception = 2;
+	else if (is_empty(&dirs_stack))
+		exception = 3;
+	else if (nargs==2 && -atoi(args[1])>list_size(&dirs_stack))
+		exception = 4;
 	
 	/* exception handling */
 	if (exception == 1)
+		fprintf(stderr, "-hsh: %s: too many arguments\nUsage: %s [-n]\n", 
+				args[0], args[0]);
+	else if (exception == 2)
+		fprintf(stderr, "-hsh: %s: %s: invalid option\nUsage: %s [-n]\n", 
+				args[0], args[1], args[0]);
+	else if (exception == 3)
 		fprintf(stderr, "-hsh: %s: directory stack empty\n", args[0]);
+	else if (exception == 4)
+		fprintf(stderr, "-hsh: %s: %s: number too big\n", args[0], args[1]);
 
 	return exception;
 }
@@ -130,7 +146,7 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 
 //===================================================================//
 // 	     	 						     //
-// 	     	 	Print Helper Functions	    	     	     //
+// 	     	       Builtin Helper Functions	    	     	     //
 // 	     	 						     //
 //===================================================================//
 
@@ -158,6 +174,17 @@ static void print_history(int n_of_entries, HIST_ENTRY **hlist)
 	for (i = n_of_entries; i > 0; i--)
 		printf(" %d  %s\n", history_base + history_length - i,
 			hlist[history_length - i]->line);
+}
+
+/* Pop directory stack helper funcion. */
+static void pop_dirs_stack()
+{
+	if (chdir(top(&dirs_stack))<0) {
+		perror("chdir");
+	} else {
+		free(top(&dirs_stack));
+		pop(&dirs_stack);
+	}
 }
 
 //===================================================================//
@@ -239,18 +266,18 @@ int builtin_pushd(int nargs, char **args)
  * @return: 0 to continue loop; -1 to break */
 int builtin_popd(int nargs, char **args)
 {
-	char *dir = NULL;
+	int i;
 
 	/* check exception */
-	if (popd_exception_hdlr(args))
+	if (popd_exception_hdlr(nargs, args))
 		return 0;
 
-	dir = top(&dirs_stack);
-	if (chdir(dir) < 0) {
-		perror("chdir");
-	} else {		/* pop stack */
-		free(dir);
-		pop(&dirs_stack);
+	/* pop directory stack */
+	if (nargs == 1) {
+		pop_dirs_stack();
+	} else {	/* # of args is 2 */
+		for (i=0; i<-atoi(args[1]); i++)
+			pop_dirs_stack();
 	}
 	
 	/* print out directory stack */
