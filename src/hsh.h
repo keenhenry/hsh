@@ -14,9 +14,6 @@
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */
 
-extern BUILTIN builtins[];
-extern char *xmalloc PARAMS((size_t));	/* check what does this line mean */
-
 /* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
 #define PATH_SIZE 4096
@@ -40,7 +37,7 @@ char rel_cwd[PATH_SIZE] = {0};
 /* system hostname hsh currently running on */
 static char hostname[30] = {0};
 
-/* a static variable as a command line buffer */
+/* a static variable as a pointer to command line buffer */
 static char *cmd_buf = (char*)NULL;	
 
 /*====================== 

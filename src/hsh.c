@@ -8,6 +8,9 @@
 #include "builtins.h"
 #include "hsh.h"
 
+extern BUILTIN builtins[];
+extern char *xmalloc PARAMS((size_t));	/* check what does this line mean */
+
 int do_main(void)
 {
 	/* initialize shell */

@@ -6,6 +6,11 @@
 
 #include "builtins.h"
 
+extern char cwd[];	// can't use char *rel_cwd; i don't know why
+extern char rel_cwd[];	// can't use char *rel_cwd; i don't know why
+extern struct List dirs_stack;
+extern struct List paths_list;
+
 BUILTIN builtins[] = {
     { "exit", "Exit hsh"			   , builtin_exit },
     { "cd", "Change directory"		   	   , builtin_cd },
@@ -14,7 +19,7 @@ BUILTIN builtins[] = {
     { "pushd", "Push directory onto stack"	   , builtin_pushd },
     { "popd", "Pop directory out of stack"	   , builtin_popd },
     { "dirs", "Print directories on stack"	   , builtin_dirs },
-//    { "path", "Modify hsh search directory list"   , builtin_path },
+    { "path", "Modify hsh search directory list"   , builtin_path },
     { "history", "Show command line history"	   , builtin_history },
 //    { "kill", "Kill processes"		   	   , builtin_kill },
 //    { "jobs", "Show current running jobs under hsh", builtin_jobs },
@@ -142,6 +147,15 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 		fprintf(stderr, "-hsh: %s: %s: invalid option\n", 
 				args[0], args[1]);
 	return exception;
+}
+
+/* path builtin exception handling
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ * @return: exception code; 0 for NO EXCEPTION OCCURS */
+static int path_exception_hdlr(int nargs, char **args) 
+{
+	return 0;
 }
 
 //===================================================================//
@@ -300,7 +314,7 @@ int builtin_dirs(int nargs, char **args)
 	return 0;
 }
 
-/* History builtin function: show command line history
+/* history builtin function: show command line history
  * @nargs: # of arguments in command line
  * @args: command line argument buffer
  * @return: 0 to continue loop; -1 to break */
@@ -319,9 +333,14 @@ int builtin_history(int nargs, char **args)
 	return 0;
 }
 
-/* parsing path command 
-int builtin_path(int nargs, char **args[])
+/* path builtin function: modify hsh search directory list
+ * @nargs: # of arguments in command line
+ * @args: command line argument buffer
+ * @return: 0 to continue loop; -1 to break */
+int builtin_path(int nargs, char **args)
 {
+	return 0;
+	/*
 	struct stat buf;
 	
 	if (nargs == 1) {
@@ -361,8 +380,8 @@ int builtin_path(int nargs, char **args[])
 	}
 
 	fprintf(stderr, "-sh: path: %s: invalid argument\n", args[1]);
-	return 1;	
-}*/
+	return 1; */	
+}
 
 //===================================================================//
 // 	     	 						     //

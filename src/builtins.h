@@ -9,10 +9,6 @@
 #include <readline/history.h>	/* The GNU history library */
 #include "list.h"
 
-extern char cwd[];	// can't use char *rel_cwd; i don't know why
-extern char rel_cwd[];	// can't use char *rel_cwd; i don't know why
-extern struct List dirs_stack;
-
 /* A structure which contains information on the shell 
  * builtin commands this program can understand */
 typedef int hsh_btfunc_t (int, char**);	/* builtin function pointer type */
