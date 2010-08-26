@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */

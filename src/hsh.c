@@ -9,7 +9,7 @@
 #include "hsh.h"
 
 extern BUILTIN builtins[];
-extern char *xmalloc PARAMS((size_t));	/* check what does this line mean */
+extern char *xmalloc PARAMS((size_t));	/* extern function declaration */
 
 int do_main(void)
 {

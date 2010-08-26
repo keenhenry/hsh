@@ -28,6 +28,22 @@ BUILTIN builtins[] = {
 
 //===================================================================//
 // 	     	 						     //
+// 	     	 Helper Functions for Helper Functions	    	     //
+// 	     	 						     //
+//===================================================================//
+
+/* A private function to compare the DATA of an element
+ * in a LIST with user supplied VAL.
+ * @data: the data of that element to be compared
+ * @val: user-supplied value
+ * @return: -1 if data < val, 0 if data == val, +1 if data > val */
+static inline int element_cmp(const void *data, const void *val)
+{
+	return strcmp((char*)data, (char*)val);
+}
+
+//===================================================================//
+// 	     	 						     //
 // 	     	 Exception Handling Helper Functions	    	     //
 // 	     	 						     //
 //===================================================================//
@@ -155,7 +171,50 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
  * @return: exception code; 0 for NO EXCEPTION OCCURS */
 static int path_exception_hdlr(int nargs, char **args) 
 {
-	return 0;
+	struct stat buf;
+	int exception = 0;
+
+	if (nargs == 1)
+		;
+	else if (nargs!=3)
+		exception = 1;
+	else if (strcmp(args[1], "+") && strcmp(args[1], "-"))
+		exception = 2;
+	else if (stat(args[2], &buf) < 0)
+		exception = 3;
+	/* args[2] is not a directory name */
+	else if (!S_ISDIR(buf.st_mode))
+		exception = 4;
+	/* detecting duplicated path in path list */
+	else if (!strcmp(args[1], "+") && -1!=find_index(&paths_list, element_cmp, args[2])) 
+		exception = 5;
+	else if (!strcmp(args[1], "-") && is_empty(&paths_list))
+		exception = 6;
+	/* delete something that does not exist in paths_list */
+	else if (!strcmp(args[1], "-") && 
+		 -1==find_index(&paths_list, element_cmp, args[2]))
+		exception = 7;
+
+	/* exception handling */
+	if (exception == 1)
+		fprintf(stderr, "-hsh: %s: wrong # of arguments\nUsage: %s [+|-] [/some/dir]\n", 
+				args[0], args[0]);
+	else if (exception == 2) 			
+		fprintf(stderr, "-hsh: %s: %s: invalid option\nUsage: %s [+|-] [/some/dir]\n", 
+				args[0], args[1], args[0]);
+	else if (exception == 3) 			
+		fprintf(stderr, "-hsh: %s: %s: %s\n", args[0], args[2], strerror(errno));
+	else if (exception == 4) 			
+		fprintf(stderr, "-hsh: %s: %s: not a directory\n", args[0], args[2]);
+	else if (exception == 5) 			
+		fprintf(stderr, "-hsh: %s: %s already in path list\n", 
+				args[0], args[2]);
+	else if (exception == 6) 			
+		fprintf(stderr, "-hsh: %s: path list empty\n", args[0]);
+	else if (exception == 7)
+		fprintf(stderr, "-hsh: %s: %s: no such path in list\n", args[0], args[2]);
+
+	return exception;
 }
 
 //===================================================================//
@@ -179,6 +238,24 @@ static void print_stack_element(void *data)
 		printf("%s ", (char *) data);
 }
 
+/* Print a single element on path search list.
+ * @data: the data the element points to */
+static void print_list_element(void *data) 
+{
+	struct Node *curr = (struct Node*) NULL;
+
+	printf("%s", (char*) data);
+
+	/* get the pointer to the struct that contains DATA pointer;
+	 * an important but simple and useful technique! commented 
+	 * b/c not working; something must be wrong */
+	//curr = (struct Node *)(((char*)data) - (unsigned long)(&((struct Node *)0)->data));
+	curr = find_node(&paths_list, element_cmp, (char*)data);
+	
+	/* print delimiter */
+	printf("%s", (curr==paths_list.back) ? "\n" : ":");
+}
+
 /* History printing function.
  * @n_of_entries: # of history entries to print
  * @hlist: list of history entries */
@@ -199,6 +276,17 @@ static void pop_dirs_stack()
 		free(top(&dirs_stack));
 		pop(&dirs_stack);
 	}
+}
+
+static char *dupstr(char *s)
+{
+    char *r;
+
+    if ((r = (char*) malloc(strlen (s) + 1)) == NULL)
+	perror("malloc");
+    else
+	strcpy(r, s);
+    return (r);
 }
 
 //===================================================================//
@@ -287,12 +375,10 @@ int builtin_popd(int nargs, char **args)
 		return 0;
 
 	/* pop directory stack */
-	if (nargs == 1) {
-		pop_dirs_stack();
-	} else {	/* # of args is 2 */
-		for (i=0; i<-atoi(args[1]); i++)
-			pop_dirs_stack();
-	}
+	if (nargs == 1)
+	    pop_dirs_stack();
+	else 	/* # of args is 2 */
+	    for (i=0; i<-atoi(args[1]); i++)    pop_dirs_stack();
 	
 	/* print out directory stack */
 	list_traversal(&dirs_stack, print_stack_element); 
@@ -339,48 +425,31 @@ int builtin_history(int nargs, char **args)
  * @return: 0 to continue loop; -1 to break */
 int builtin_path(int nargs, char **args)
 {
+    char *dir;
+    int index;
+
+    /* check for exceptions */
+    if (path_exception_hdlr(nargs, args))
 	return 0;
-	/*
-	struct stat buf;
-	
-	if (nargs == 1) {
-		show_stack(s, ':');
-		if (size(s)) printf("\n");
-		return 0;
-	}
 
-	if (nargs != 3) {
-		fprintf(stderr, "-sh: usage: %s [+|-] [/some/dir]\n", args[0]);
-		return 1;	// to indicate error occurs 
-	}
+    /* path */
+    if (nargs == 1) {
+	list_traversal(&paths_list, print_list_element);
+	return 0;
+    } 
+   
+    /* allocating data memory to be added to path list */
+    if ((dir = dupstr(args[2])) == NULL) 
+	return 0;
+    
+    if (!strcmp(args[1], "+")) {	// path + [/some/dirs] 
+	push(&paths_list, dir);
+    } else {   				// path - [/some/dirs]
+	index = find_index(&paths_list, element_cmp, args[2]); 
+	remove_at_idx(&paths_list, index);	
+    }
 
-	if (!strcmp(args[1], "+")) {
-		if (stat(args[2], &buf) < 0) {
-			fprintf(stderr, "-sh: path: %s\n", strerror(errno));
-			return 1;
-		}
-		if (find_node(s, args[2]) >= 0) {// detecting duplicated path 
-			fprintf(stderr, "-sh: path: %s already in path list\n", args[2]);
-			return 1;
-		}
-		push(s, args[2]);
-		return 0;
-	}
-
-	if (!strcmp(args[1], "-")) {
-		if (is_empty(s)) {
-			fprintf(stderr, "-sh: path: path list empty\n");
-			return 1;
-		}
-		if (rm_node(s, find_node(s, args[2])) > 0) {
-			fprintf(stderr, "-sh: path: %s is not in path list\n", args[2]);
-			return 1;
-		}
-		return 0;
-	}
-
-	fprintf(stderr, "-sh: path: %s: invalid argument\n", args[1]);
-	return 1; */	
+    return 0;
 }
 
 //===================================================================//
