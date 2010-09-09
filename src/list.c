@@ -84,7 +84,7 @@ void pop(struct List *list)
 DATATYPE* top(const struct List *list)
 {
 	if (list->size <= 0) {
-		fprintf(stderr, "Stack empty\n");
+		fprintf(stderr, "stack empty\n");
 		return NULL;
 	}
 
@@ -114,7 +114,7 @@ void pop_front(struct List *list)
 	struct Node *curr = list->front;
 	
 	if (list->size <= 0) {
-		fprintf(stderr, "Stack empty\n");
+		fprintf(stderr, "stack empty\n");
 		return;
 	}
 
@@ -141,7 +141,7 @@ void pop_back(struct List *list)
 DATATYPE* front(const struct List *list)
 {
 	if (list->size <= 0) {
-		fprintf(stderr, "Stack empty\n");
+		fprintf(stderr, "stack empty\n");
 		return NULL;
 	}
 
@@ -210,6 +210,27 @@ int remove_at_idx(struct List *list, int index)
 	}
 
 	return 0;	/* remove successfully */
+}
+
+int remove_node(struct List *list, struct Node *node)
+{
+	if (is_empty(list) || node == NULL) 
+		return 1;	/* Not found */
+	
+	node->prev->next = node->next;
+	node->next->prev = node->prev;
+
+	if (--list->size == 0)
+		list->front = list->back = NULL;
+	else {
+		if (node == list->front) 
+			list->front = node->next;
+		if (node == list->back)
+			list->back = node->prev;
+	}
+
+	free(node);
+	return 0;
 }
 
 void list_traversal(struct List *list, void (*f)(void *a))

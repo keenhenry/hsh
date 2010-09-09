@@ -9,7 +9,7 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-typedef char DATATYPE;		/* the type of data a node will hold */
+typedef double DATATYPE;		/* the type of data a node will hold */
 
 /**
  * A List consists of three pointers:
@@ -127,6 +127,14 @@ struct Node *find_node(const struct List *list, int (*compare)(const void *eleme
  * @return: 0 if removed successfully; 1 if not found or not a valid index
  **/
 int remove_at_idx(struct List *list, int index);
+
+/**
+ * remove_node(): remove a node based on the pointer to that node
+ * @list: the list to be removed
+ * @node: pointer to the node to be removed
+ * @return: 0 if removed successfully; 1 if not found or not a valid index
+ **/
+int remove_node(struct List *list, struct Node *node);
 
 /**
  * list_traversal(): traverse the list and apply a function f to each element

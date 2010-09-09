@@ -445,7 +445,8 @@ int builtin_path(int nargs, char **args)
     if (!strcmp(args[1], "+")) {	// path + [/some/dirs] 
 	push(&paths_list, dir);
     } else {   				// path - [/some/dirs]
-	index = find_index(&paths_list, element_cmp, args[2]); 
+	index = find_index(&paths_list, element_cmp, args[2]);
+	// need to remove node data first!
 	remove_at_idx(&paths_list, index);	
     }
 
