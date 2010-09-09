@@ -24,7 +24,7 @@ $(TAR).o: $(HEAD) builtins.c list.c
 
 
 test: build
-	valgrind -v --leak-check=full --show-reachable=yes ./hsh
+	valgrind -v --log-file=valgrind.log --tool=memcheck --leak-check=full ./hsh
 
 .PHONY: clean
 clean:

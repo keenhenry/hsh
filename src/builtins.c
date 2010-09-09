@@ -425,8 +425,7 @@ int builtin_history(int nargs, char **args)
  * @return: 0 to continue loop; -1 to break */
 int builtin_path(int nargs, char **args)
 {
-    char *dir;
-    int index;
+    struct Node *node;
 
     /* check for exceptions */
     if (path_exception_hdlr(nargs, args))
@@ -438,16 +437,12 @@ int builtin_path(int nargs, char **args)
 	return 0;
     } 
    
-    /* allocating data memory to be added to path list */
-    if ((dir = dupstr(args[2])) == NULL) 
-	return 0;
-    
     if (!strcmp(args[1], "+")) {	// path + [/some/dirs] 
-	push(&paths_list, dir);
+	push(&paths_list, dupstr(args[2]));
     } else {   				// path - [/some/dirs]
-	index = find_index(&paths_list, element_cmp, args[2]);
-	// need to remove node data first!
-	remove_at_idx(&paths_list, index);	
+	node = find_node(&paths_list, element_cmp, args[2]);
+	free((char*)node->data);	// remove node data first!
+	remove_node(&paths_list, node);	
     }
 
     return 0;
