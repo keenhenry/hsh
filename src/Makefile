@@ -28,4 +28,4 @@ test: build
 
 .PHONY: clean
 clean:
-	rm -f *.o *.core *~ $(TAR) 
+	rm -f *.o *.core *~ *.log $(TAR) 

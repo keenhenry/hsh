@@ -336,30 +336,19 @@ inline int builtin_pwd(int nargs, char **args) { return printf("%s\n", cwd); }
  * @return: 0 to continue loop; -1 to break */
 int builtin_pushd(int nargs, char **args)
 {
-	char *dir = NULL;
-
-	/* check chdir exceptions */
-	if (cd_exception_hdlr(nargs, args))
-		return 0;
-	
-	/* allocate memory for directory name;
-	 * the list API does not manage user data! */
-	if (!(dir = (char*) malloc(strlen(cwd)+1))) {
-		perror("malloc");
-		return 0;
-	}
-	
-	memset(dir, 0, 1);
-	
-	/* push directory to stack; but never push directory
-	 * that is identical to top element on the stack */
-	if (is_empty(&dirs_stack) || strcmp(top(&dirs_stack), cwd))
-		push(&dirs_stack, strcpy(dir, cwd));
-
-	/* print out directory stack */
-	list_traversal(&dirs_stack, print_stack_element); 
-	printf("<\n");
+    /* check chdir exceptions */
+    if (cd_exception_hdlr(nargs, args))
 	return 0;
+	
+    /* push directory to stack; but never push directory
+     * that is identical to top element on the stack */
+    if (is_empty(&dirs_stack) || strcmp(top(&dirs_stack), cwd))
+	push(&dirs_stack, dupstr(cwd));
+
+    /* print out directory stack */
+    list_traversal(&dirs_stack, print_stack_element); 
+    printf("<\n");
+    return 0;
 }
 
 /* popd builtin function: popd directory stack
