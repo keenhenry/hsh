@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <dirent.h>
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */
 
@@ -45,7 +46,7 @@ static char *cmd_buf = (char*)NULL;
  ======================*/
 
 void init_shell();
-void execute_cmd();
+void execute_line();
 void clean_shell();
 
 char *readline(const char *prompt);
@@ -53,8 +54,4 @@ void initialize_readline (void);
 char *command_generator(const char *, int);
 char **hsh_completion(const char *, int, int);
 
-/*
-int path_cmd(int nargs, char *args[], stackT *s);
-int find_cmd(const stackT *list, const char *cmd, char *path_buf);
-*/
 #endif

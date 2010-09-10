@@ -17,7 +17,7 @@ int do_main(void)
 	init_shell();
 	
 	/* execute commands from command line */
-	execute_cmd();
+	execute_line();
 
 	/* clean up hsh memory*/
 	clean_shell();
@@ -179,9 +179,85 @@ static int execute_builtin(int nargs, char **args)
 {
     BUILTIN *builtin = (BUILTIN*) NULL; 
 	
-    if (!(builtin = find_builtins(args[0])))	// command is not builtin
+    if (!(builtin = find_builtins(args[0])))	/* command is not builtin */
 		return -2;
     return (*(builtin->func))(nargs, args); 
+}
+
+/* Find executables in paths of paths_list.
+ * @paths: paths list to be searched => paths_list
+ * @args: command line argument list
+ * @return: command path if found; otherwise NULL */
+static char *find_cmd(struct List *paths, char *args[])
+{
+    int len;			/* pathname length */
+    char *path = (char *) NULL;	/* command path */
+    struct stat sb;		/* file status */
+    DIR *dir;			/* a strucutre representing directory */
+    struct dirent *entry;	/* an entry in directory dir */
+    struct Node *itr = paths->front;
+
+    /* build a temporary command path search list */
+    push_front(paths, ".");
+	
+    /* search path list for command args[0] */
+    while (itr && itr != paths->tail) {
+	dir = opendir((char*)itr->data);
+
+	if (!dir) {
+	    perror("opendir");
+	    break;
+	}
+
+	len = strlen((char*)itr->data) + strlen("/") + strlen(args[0]);
+	path = (char *) malloc(len + 1);
+	
+	if (!path) {
+	    perror("malloc");
+	    break;
+	}
+	
+	strcat(path, (char*)itr->data);
+	strcat(strcat(path, "/"), args[0]);
+	
+	stat(path, &sb);
+	while ((entry = readdir(dir)) != NULL) {
+	    if (!strcmp(entry->d_name, args[0]) && S_ISREG(sb.st_mode) && !access(path, X_OK)) {
+    		pop_front(paths);
+	    	return path;	/* command path found */
+	    }
+	}
+	
+	free(path);
+	itr = itr->next;
+	closedir(dir);
+    }
+   
+    /* restore original path search list */
+    pop_front(paths);
+    
+    /* not found */	 
+    return NULL;
+}
+
+/* Execute system utilities or any executable found from find_cmd.
+ * @cmd_path: path of the command being execute
+ * @args: command line arguments */
+static void execute_cmd(char *cmd_path, char **args)
+{
+    pid_t pid;
+    switch (pid = fork()) {
+	case -1:
+	    perror("fork");
+	    break;
+	case 0:		/* child process */
+	    execv(cmd_path, args);
+	    perror("execv");
+	    break;
+	default:	/* parent process */
+	    if (waitpid(pid, NULL, 0) != pid)
+		perror("waitpid");	
+    }
 }
 
 //===================================================================//
@@ -274,17 +350,14 @@ void init_shell()
 
 
 /* Execute command line */ 
-void execute_cmd()
+void execute_line()
 {
 	int nargs;			/* # of args */
 	int rel_blt;			/* return value of execute_builtin() */
-	//int error;			/* error code for find_cmd() functions */
-	//pid_t pid;
 	
-	//char cmd_path[PATH_SIZE];	/* command search path */
-	char *prompt  = (char*)NULL;	/* command line prompt */
+	char *prompt  = (char*) NULL;	/* command line prompt */
 	char *args[MAX_NUM_ARGS+1];	/* buffer holding cmd line args */
-	//char cmd_path[PATH_SIZE];	/* command search path */
+	char *cmd_path;			/* command path */
 
 	while (1) {
 		/* get current working directory in relative path 
@@ -306,35 +379,19 @@ void execute_cmd()
 
 		/* execute commands */
 		rel_blt = execute_builtin(nargs, args);
-		
 		if (rel_blt == -1)
 			break;
 		else if (rel_blt >= 0)
 			continue;
-		else
-			;	// do something
-		/*
-		// check for utilities in path *
-		error = find_cmd(&path, buf_arg[0], cmd_path);
-		if(error == 0) {	// command found 
-			switch (pid = fork()) {
-			case -1:
-				perror("fork");
-				exit(1);
-			case 0:	// child process here 
-				execv(cmd_path, buf_arg);
-				perror("execv");
-				exit(1);
-			default:
-				if (waitpid(pid, NULL, 0) != pid) {
-					perror("waitpid");	
-					exit(1);
-				}	
-			}
+	
+		/* got here when rel_blt == -2 */
+		cmd_path = find_cmd(&paths_list, args);
+		if (cmd_path == NULL) {
+			fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
 		} else {
-			fprintf(stderr, "-sh: %s: command not found\n", buf_arg[0]);
+			execute_cmd(cmd_path, args);
+			free(cmd_path);
 		}
-*/
 	}
 
 	/* release memory from control */
@@ -352,62 +409,3 @@ void clean_shell()
 	list_clean(&paths_list);
 	clear_history();
 }
-
-/* to find the executables 
-int find_cmd(const stackT *list, const char *cmd, char *path_buf)
-{
-	struct stat sb;		// store command file status
-
-	// check cmd size is not too long 
-	if (strlen(cmd) + strlen("./") >= PATH_SIZE - 1) {
-		fprintf(stderr, "command too long\n");
-		return -1;
-	}
-
-	memset(path_buf, 0, PATH_SIZE);
-	strcat(path_buf, "./");
-	strcat(path_buf, cmd);
-	
-	// first search for current dir 
-	if (stat(path_buf, &sb) == 0) {
-		if ((sb.st_mode & S_IXOTH) != 00001) // user has no execute permission
-			return -1;
-		return 0; 	// command found 
-	} else {
-		if (errno == ENOENT); 
-		else {
-			perror("stat");
-			exit(1);
-		}
-	}
-
-	// otherwise search for path list 
-	struct Node *tmp = list->head;
-	while (tmp) {
-		if (strlen(cmd) + strlen(tmp->data) + strlen("/") >= PATH_SIZE - 1) {
-			fprintf(stderr, "command too long\n");
-			return -1;
-		}
-
-		memset(path_buf, 0, PATH_SIZE);
-		strcat(path_buf, tmp->data);
-		if (path_buf[strlen(path_buf)-1] != '/')
-			strcat(path_buf, "/");
-		strcat(path_buf, cmd);
-	
-		if (stat(path_buf, &sb) == 0) {
-			if ((sb.st_mode & S_IXOTH) != 00001) 
-				return -1;
-			return 0;	// found 
-		} else {
-			if (errno == ENOENT) {
-				tmp = tmp->next;
-				continue;
-			} else {
-				perror("stat");
-				exit(1);
-			}
-		}
-	}
-	return -1;	 command not found
-}*/
