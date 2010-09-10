@@ -212,18 +212,20 @@ static char *find_cmd(struct List *paths, char *args[])
 	len = strlen((char*)itr->data) + strlen("/") + strlen(args[0]);
 	path = (char *) malloc(len + 1);
 	
-	if (!path) {
+	if (path) {
+	    memset(path, 0, 1);
+	    strcat(path, (char*)itr->data);
+	    strcat(strcat(path, "/"), args[0]);
+	} else {
 	    perror("malloc");
 	    break;
 	}
-	
-	strcat(path, (char*)itr->data);
-	strcat(strcat(path, "/"), args[0]);
 	
 	stat(path, &sb);
 	while ((entry = readdir(dir)) != NULL) {
 	    if (!strcmp(entry->d_name, args[0]) && S_ISREG(sb.st_mode) && !access(path, X_OK)) {
     		pop_front(paths);
+		closedir(dir);
 	    	return path;	/* command path found */
 	    }
 	}
