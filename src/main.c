@@ -6,7 +6,7 @@ int do_main(void)
 	init_shell();
 	
 	/* execute commands from command line */
-	execute_cmd();
+	execute_line();
 
 	/* clean up hsh memory*/
 	clean_shell();
@@ -18,4 +18,3 @@ int main(void)
 {
 	return do_main();
 }
-

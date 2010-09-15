@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */
+#include "list.h"
 
 /* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
@@ -23,35 +24,48 @@
  * Global Data Structures
  =========================*/
 
-/* directory stack */
-struct List dirs_stack;
+/* A structure which contains information on the shell 
+ * builtin commands this program can understand */
+typedef int hsh_btfunc_t (int, char**);	/* builtin function pointer type */
 
-/* pathname list */
-struct List paths_list;
-
-/* current working directory: in absolute path name */
-char cwd[PATH_SIZE] = {0};
-
-/* current working directory: in relative path name */
-char rel_cwd[PATH_SIZE] = {0};
-
-/* system hostname hsh currently running on */
-static char hostname[30] = {0};
-
-/* a static variable as a pointer to command line buffer */
-static char *cmd_buf = (char*)NULL;	
+typedef struct {
+    char *name;		/* user printable name */
+    char *doc;		/* documentation string for this function */
+    hsh_btfunc_t *func;	/* function to call to do the job */
+} BUILTIN;
 
 /*====================== 
  * Function Prototypes
  ======================*/
 
-void init_shell();
-void execute_line();
-void clean_shell();
+/* builtin helper function signatures */
+void list_clean(struct List *list);
 
+/* hsh helper function signatures */
+char *dupstr (char *s);
+
+/* readline interface */
 char *readline(const char *prompt);
 void initialize_readline (void);
 char *command_generator(const char *, int);
 char **hsh_completion(const char *, int, int);
+
+/* builtin command interface */
+int builtin_exit(int nargs, char **args);
+int builtin_cd(int nargs, char **args);
+int builtin_echo(int nargs, char **args);
+int builtin_pwd(int nargs, char **args);
+int builtin_pushd(int nargs, char **args);
+int builtin_popd(int nargs, char **args);
+int builtin_dirs(int nargs, char **args);
+int builtin_path(int nargs, char **args);
+int builtin_history(int nargs, char **args);
+int builtin_kill(int nargs, char **args);
+int builtin_jobs(int nargs, char **args);
+
+/* hsh interface */
+void init_shell();
+void execute_line();
+void clean_shell();
 
 #endif

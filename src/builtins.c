@@ -4,7 +4,7 @@
  * @date: 08/13/2010
  */
 
-#include "builtins.h"
+#include "hsh.h"
 
 extern char cwd[];	// can't use char *rel_cwd; i don't know why
 extern char rel_cwd[];	// can't use char *rel_cwd; i don't know why
@@ -276,17 +276,6 @@ static void pop_dirs_stack()
 		free(top(&dirs_stack));
 		pop(&dirs_stack);
 	}
-}
-
-static char *dupstr(char *s)
-{
-    char *r;
-
-    if ((r = (char*) malloc(strlen (s) + 1)) == NULL)
-	perror("malloc");
-    else
-	strcpy(r, s);
-    return (r);
 }
 
 //===================================================================//

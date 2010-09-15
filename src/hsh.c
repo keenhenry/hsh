@@ -1,34 +1,38 @@
 /**
- * hsh.c: Hank Shell 
+ * hsh.c: Hank Shell implemenation file 
  * @author: Henry Huang
  * @date: 04/08/2010
  */
 
 #include "list.h"
-#include "builtins.h"
 #include "hsh.h"
 
 extern BUILTIN builtins[];
 extern char *xmalloc PARAMS((size_t));	/* extern function declaration */
 
-int do_main(void)
-{
-	/* initialize shell */
-	init_shell();
-	
-	/* execute commands from command line */
-	execute_line();
+//===================================================================//
+// 	     	 						     //
+// 	     	 	Global Data Structures			     //
+// 	     	 						     //
+//===================================================================//
 
-	/* clean up hsh memory*/
-	clean_shell();
+/* directory stack */
+struct List dirs_stack;
 
-	return 0;
-}
+/* pathname list */
+struct List paths_list;
 
-int main(void)
-{
-	return do_main();
-}
+/* current working directory: in absolute path name */
+char cwd[PATH_SIZE] = {0};
+
+/* current working directory: in relative path name */
+char rel_cwd[PATH_SIZE] = {0};
+
+/* system hostname hsh currently running on */
+static char hostname[30] = {0};
+
+/* a pointer to command line buffer */
+char *cmd_buf = (char*)NULL;	
 
 //===================================================================//
 // 	     	 						     //
@@ -151,7 +155,6 @@ static int cmd_tokenizer(char **args)
 		count = -1;
 	else
 		args[count] = NULL;
-	
 	return count;
 }
 
@@ -159,7 +162,7 @@ static int cmd_tokenizer(char **args)
  * @name: the name of the command
  * @return: a pointer to that BUILTIN entry;  
  * return NULL if name isn't a builtin name. */
-BUILTIN *find_builtins(char *name)
+static BUILTIN *find_builtins(char *name)
 {
 	register int i;
 	
