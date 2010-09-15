@@ -79,30 +79,24 @@ static int popd_exception_hdlr(int nargs, char **args)
 {
 	int exception = 0;
 
-	if (nargs > 2)
-		exception = 1;
 	/* a hack for atoi() funcion; this case is not an exception! */
-	else if (nargs==2 && strcmp(args[1],"-0")==0)
+	if (nargs==2 && strcmp(args[1],"-0")==0)
 		;
 	else if (nargs==2 && atoi(args[1])>=0)
-		exception = 2;
+		exception = 1;
 	else if (is_empty(&dirs_stack))
-		exception = 3;
+		exception = 2;
 	else if (nargs==2 && -atoi(args[1])>list_size(&dirs_stack))
-		exception = 4;
+		exception = 3;
 	
 	/* exception handling */
 	if (exception == 1)
-		fprintf(stderr, "-hsh: %s: too many arguments\nUsage: %s [-n]\n", 
-				args[0], args[0]);
-	else if (exception == 2)
 		fprintf(stderr, "-hsh: %s: %s: invalid option\nUsage: %s [-n]\n", 
 				args[0], args[1], args[0]);
-	else if (exception == 3)
+	else if (exception == 2)
 		fprintf(stderr, "-hsh: %s: directory stack empty\n", args[0]);
-	else if (exception == 4)
+	else if (exception == 3)
 		fprintf(stderr, "-hsh: %s: %s: number too big\n", args[0], args[1]);
-
 	return exception;
 }
 
@@ -113,14 +107,6 @@ static int popd_exception_hdlr(int nargs, char **args)
 static int dirs_exception_hdlr(int nargs, char **args)
 {
 	int exception = 0;
-
-	if (nargs > 1)
-		exception = 1;
-	
-	/* exception handling */
-	if (exception == 1)
-		fprintf(stderr, "-hsh: %s: too many arguments\nUsage: %s\n",
-				args[0], args[0]);
 	return exception;
 }
 
@@ -136,26 +122,20 @@ static int his_exception_hdlr(int nargs, char **args, HIST_ENTRY **hlist)
 	/* check for NO HISTORY */
 	if (hlist == NULL)
 		exception = -1;
-	/* check for # of arguments */
-	else if (nargs > 2)
-		exception = -2;
 	/* a hack for atoi() funcion; this case is not an exception! */
-	else if (nargs == 2 && strcmp(args[1], "0")==0)
+	else if (nargs >= 2 && strcmp(args[1], "0")==0)
 		;
 	/* check for numeric argument */
-	else if (nargs == 2 && !atoi(args[1]))
+	else if (nargs >= 2 && !atoi(args[1]))
 		exception = 1;
 	/* check validity of numeric argument */
-	else if (nargs == 2 && (atoi(args[1]) > history_length || 
+	else if (nargs >= 2 && (atoi(args[1]) > history_length || 
 				atoi(args[1]) < 0))
 		exception = 2;
 
 	/* exception handling */
 	if (exception == -1)
 		;
-	else if (exception == -2)
-		fprintf(stderr, "-hsh: %s: too many arguments\nUsage: %s [n]\n", 
-				args[0], args[0]);
 	else if (exception == 1)
 		fprintf(stderr, "-hsh: %s: %s: numeric argument required\n", 
 				args[0], args[1]);
@@ -176,7 +156,7 @@ static int path_exception_hdlr(int nargs, char **args)
 
 	if (nargs == 1)
 		;
-	else if (nargs!=3)
+	else if (nargs < 3)
 		exception = 1;
 	else if (strcmp(args[1], "+") && strcmp(args[1], "-"))
 		exception = 2;
@@ -213,7 +193,6 @@ static int path_exception_hdlr(int nargs, char **args)
 		fprintf(stderr, "-hsh: %s: path list empty\n", args[0]);
 	else if (exception == 7)
 		fprintf(stderr, "-hsh: %s: %s: no such path in list\n", args[0], args[2]);
-
 	return exception;
 }
 
@@ -390,9 +369,9 @@ int builtin_history(int nargs, char **args)
 	if (his_exception_hdlr(nargs, args, the_list))
 		return 0;
 
-	if (nargs == 1) 	// Only one command line argument 
+	if (nargs == 1) 	
 		print_history(history_length, the_list);
-	else if (nargs == 2) 	// Two command line arguments
+	else 
 		print_history(atoi(args[1]), the_list);
 	return 0;
 }
