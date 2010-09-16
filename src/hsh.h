@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */
 #include "list.h"
@@ -49,6 +50,9 @@ char *readline(const char *prompt);
 void initialize_readline (void);
 char *command_generator(const char *, int);
 char **hsh_completion(const char *, int, int);
+
+/* IO redirection interface */
+int io_redirect(int nargs, char **args);
 
 /* builtin command interface */
 int builtin_exit(int nargs, char **args);

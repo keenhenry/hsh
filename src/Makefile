@@ -9,8 +9,8 @@ CFLAGS  = -g -Wall -I.
 LDFLAGS = -lreadline
 
 HEAD = list.h hsh.h
-SRCS = hsh.c list.c builtins.c main.c #io_redirect.c
-OBJS = hsh.o list.o builtins.o main.o #io_redirect.o
+SRCS = hsh.c list.c builtins.c main.c io_redirect.c
+OBJS = hsh.o list.o builtins.o main.o io_redirect.o
 TAR  = hsh
 
 build: all

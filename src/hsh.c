@@ -382,6 +382,10 @@ void execute_line()
 			continue;
 		}
 
+		/* check for io redirection */
+		if (io_redirect(nargs, args))
+			continue;
+
 		/* execute commands */
 		rel_blt = execute_builtin(nargs, args);
 		if (rel_blt == -1)
