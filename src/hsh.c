@@ -357,64 +357,64 @@ void init_shell()
 /* Execute command line */ 
 void execute_line()
 {
-	int nargs;			/* # of args */
-	int rel_blt;			/* return value of execute_builtin() */
+    int nargs;				/* # of args */
+    int rel_blt;			/* return value of execute_builtin() */
 	
-	char *prompt  = (char*) NULL;	/* command line prompt */
-	char *args[MAX_NUM_ARGS+1];	/* buffer holding cmd line args */
-	char *cmd_path;			/* command path */
+    char *prompt  = (char*) NULL;	/* command line prompt */
+    char *args[MAX_NUM_ARGS+1];		/* buffer holding cmd line args */
+    char *cmd_path;			/* command path */
 
-	while (1) {
-		/* get current working directory in relative path 
-		 * to home directory */
-		path_abs2rel();
+    while (1) {
+	/* get current working directory in relative path 
+	 * to home directory */
+	path_abs2rel();
 	
-		/* making command line prompt for user */
-		update_prompt(&prompt);
+	/* making command line prompt for user */
+	update_prompt(&prompt);
 	
-		/* display shell prompt and read user inputs */
-		if (rl_gets(prompt) == NULL || !*cmd_buf)
-			continue;
+	/* display shell prompt and read user inputs */
+	if (rl_gets(prompt) == NULL || !*cmd_buf)
+	    continue;
 		
-		/* tokenize command line string */
-		if (-1 == (nargs = cmd_tokenizer(args))) {
-			fprintf(stderr, "-hsh: too many arguments\n");
-			continue;
-		}
-
-		/* check for io redirection */
-		if (io_redirect(nargs, args))
-			continue;
-
-		/* execute commands */
-		rel_blt = execute_builtin(nargs, args);
-		if (rel_blt == -1)
-			break;
-		else if (rel_blt >= 0)
-			continue;
-	
-		/* got here when rel_blt == -2 */
-		cmd_path = find_cmd(&paths_list, args);
-		if (cmd_path == NULL) {
-			fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
-		} else {
-			execute_cmd(cmd_path, args);
-			free(cmd_path);
-		}
+	/* tokenize command line string */
+	if (-1 == (nargs = cmd_tokenizer(args))) {
+	    fprintf(stderr, "-hsh: too many arguments\n");
+	    continue;
 	}
 
-	/* release memory from control */
-	if (prompt)
-        	free(prompt);
-	if (cmd_buf)
-        	free(cmd_buf);
+	/* check for io redirection */
+	if (io_redirect(&nargs, args))
+	    continue;
+
+	/* execute commands */
+	if (-1 == (rel_blt = execute_builtin(nargs, args))) {
+	    restore_stdio();
+	    break;
+	} else if (rel_blt >= 0) {
+	    restore_stdio();
+	    continue;
+	} else if ((cmd_path = find_cmd(&paths_list, args))) {
+	    /* reach here if rel_blt == -2 && cmd_path != NULL */
+	    execute_cmd(cmd_path, args);
+	    restore_stdio();
+	    free(cmd_path);
+	} else {
+	    fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
+	}
+    }
+
+    /* release memory from control */
+    if (prompt)
+       	free(prompt);
+    if (cmd_buf)
+       	free(cmd_buf);
 }
 
 /* Clean up data structures and 
  * release memory from control */ 
 void clean_shell()
 {
-	list_clean(&dirs_stack);
-	list_clean(&paths_list);
-	clear_history();
+    list_clean(&dirs_stack);
+    list_clean(&paths_list);
+    clear_history();
 }

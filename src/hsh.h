@@ -22,7 +22,7 @@
 #define PATH_SIZE 4096
 
 /*========================= 
- * Global Data Structures
+ * Global Data Structures *
  =========================*/
 
 /* A structure which contains information on the shell 
@@ -36,7 +36,7 @@ typedef struct {
 } BUILTIN;
 
 /*====================== 
- * Function Prototypes
+ * Function Prototypes *
  ======================*/
 
 /* builtin helper function signatures */
@@ -52,7 +52,8 @@ char *command_generator(const char *, int);
 char **hsh_completion(const char *, int, int);
 
 /* IO redirection interface */
-int io_redirect(int nargs, char **args);
+int io_redirect(int *pnargs, char **args);
+void restore_stdio(void);
 
 /* builtin command interface */
 int builtin_exit(int nargs, char **args);
