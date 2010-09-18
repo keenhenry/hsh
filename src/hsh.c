@@ -158,6 +158,17 @@ static int cmd_tokenizer(char **args)
 	return count;
 }
 
+/* Parse command line argment list for pipelining
+ * @args: a buffer to hold tokens
+ * @return: # of tokens; -1 when too much tokens */
+/*static void parse_args(char **args)
+{
+    int i;
+    for (i = 0; args[i] ; i++) {
+	if (!strcmp(args[i], "|")) args[i] = (char *) NULL;
+    }
+}*/
+
 /* Look up the name of a command.
  * @name: the name of the command
  * @return: a pointer to that BUILTIN entry;  
@@ -165,8 +176,8 @@ static int cmd_tokenizer(char **args)
 static BUILTIN *find_builtins(char *name)
 {
 	register int i;
-	
-	for (i = 0; builtins[i].name; i++)
+
+	for (i = 0; (name) && builtins[i].name; i++)
 	    if (strcmp(name, builtins[i].name) == 0)
 		return (&builtins[i]);
 	return (BUILTIN*)NULL;
@@ -204,7 +215,7 @@ static char *find_cmd(struct List *paths, char *args[])
     push_front(paths, ".");
 	
     /* search path list for command args[0] */
-    while (itr && itr != paths->tail) {
+    while (args[0] && itr && itr != paths->tail) {
 	dir = opendir((char*)itr->data);
 
 	if (!dir) {
@@ -382,6 +393,14 @@ void execute_line()
 	    continue;
 	}
 
+	// call parse_args function here.
+	// if pipeline symbol presents,
+	// fork processes to execute codes below
+	// otherwise do not fork.
+	// use a for-loop to for processes
+	// and return nargs and args information 
+	// for each forked process
+	
 	/* check for io redirection */
 	if (io_redirect(&nargs, args))
 	    continue;
@@ -398,9 +417,15 @@ void execute_line()
 	    execute_cmd(cmd_path, args);
 	    restore_stdio();
 	    free(cmd_path);
-	} else {
+	} else if (args[0]) {	
+	    /* no such command and command line is not empty;
+	     * command line can be empty when reached here for 
+	     * command such as: "> ls" */
+	    restore_stdio();
 	    fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
-	}
+	} else {
+	    restore_stdio();
+	} 
     }
 
     /* release memory from control */

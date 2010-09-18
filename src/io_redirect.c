@@ -28,38 +28,36 @@ int io_exception_hdlr(int nargs, char **args)
 {
     int i, exception = 0;
 
-    for (i = 1; i < nargs-1; i++) {
+    if (nargs==1 && (!strcmp(args[0], ">") || !strcmp(args[0], "<") || 
+	    	     !strcmp(args[0], "1>") || !strcmp(args[0], "2>")))
+	    exception = 1;
+
+    for (i = 0; i < nargs-1; i++) {	/* i must start with 0 */
 	//if (!strcmp(args[i], ">") && !strcmp(args[i+2], "<"))
 	//    exception = 1;
 	//else if (!strcmp(args[i], ">") && !strcmp(args[i+2], "|"))
 	//    exception = 1;
 	//else if (!strcmp(args[i], "|") && !strcmp(args[i+2], "<"))
 	//    exception = 1;
-    	if (!strcmp(args[nargs-1], ">") || !strcmp(args[nargs-1], "<")) {
+	if (!strcmp(args[nargs-1], ">") || !strcmp(args[nargs-1], "<")) {
 	    exception = 2;
 	    break;
-	} else if (!strcmp(args[i], ">") && !strcmp(args[i+1], ">")) {
-	    exception = 1;
+	} else if ((!strcmp(args[i], ">") && !strcmp(args[i+1], ">")) ||
+	     	   (!strcmp(args[i], ">") && !strcmp(args[i+1], "<")) ||	
+	     	   (!strcmp(args[i], "<") && !strcmp(args[i+1], ">")) ||
+	     	   (!strcmp(args[i], "<") && !strcmp(args[i+1], "<")) ||
+	     	   (!strcmp(args[i], "2>") && !strcmp(args[i+1], "2>"))) {
+	    exception = 3;
 	    break;
-	} else if (!strcmp(args[i], ">") && !strcmp(args[i+1], "<")) {
-	    exception = 1;
-	    break;
-	} else if (!strcmp(args[i], "<") && !strcmp(args[i+1], ">")) {
-	    exception = 1;
-	    break;
-	} else if (!strcmp(args[i], "<") && !strcmp(args[i+1], "<")) {
-	    exception = 1;
-	    break;
-	} else if (!strcmp(args[i], "2>") && !strcmp(args[i+1], "2>")) {
-	    exception = 1;
-	    break;
-	}  
+	}
     }
 
     if (exception == 1)
-	fprintf(stderr, "-hsh: syntax error near unexpected token %s\n", args[i+1]);
+	fprintf(stderr, "-hsh: syntax error near unexpected token 'newline'\n");
     else if (exception == 2)
-	fprintf(stderr, "-hsh: syntax error near unexpected token %s\n", args[nargs-1]);
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[nargs-1]);
+    else if (exception == 3)
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[i+1]);
     return exception;
 }
 
@@ -70,7 +68,7 @@ int io_exception_hdlr(int nargs, char **args)
 int redirect_stdin(int *pfd, char *pathname)
 {
     if (-1 == (*pfd = open(pathname, O_RDONLY)))
-	perror("open");
+	fprintf(stderr, "-hsh: %s: %s\n", pathname, strerror(errno));
     else if (dup2(*pfd, STDIN_FILENO) != STDIN_FILENO)
 	perror("dup2 error for stdin");
     else
@@ -85,7 +83,22 @@ int redirect_stdin(int *pfd, char *pathname)
 int redirect_stdout(int *pfd, char *pathname)
 {
     if (-1 == (*pfd = open(pathname, O_WRONLY | O_CREAT | O_TRUNC, 0666)))
-	perror("open");
+	fprintf(stderr, "-hsh: %s: %s\n", pathname, strerror(errno));
+    else if (dup2(*pfd, STDOUT_FILENO) != STDOUT_FILENO)
+	perror("dup2 error for stdout");
+    else
+	close(*pfd);
+    return (errno) ? -1 : 0;
+}
+
+/* Redirect stdout to file for append
+ * @pfd: pointer to file descriptor of that file
+ * @pathname: file pathname which stdout redirects to
+ * @return: 0 if no errors otherwise -1 */
+int redirect_stdout_append(int *pfd, char *pathname)
+{
+    if (-1 == (*pfd = open(pathname, O_WRONLY | O_CREAT | O_APPEND, 0666)))
+	fprintf(stderr, "-hsh: %s: %s\n", pathname, strerror(errno));
     else if (dup2(*pfd, STDOUT_FILENO) != STDOUT_FILENO)
 	perror("dup2 error for stdout");
     else
@@ -100,7 +113,7 @@ int redirect_stdout(int *pfd, char *pathname)
 int redirect_stderr(int *pfd, char *pathname)
 {
     if (-1 == (*pfd = open(pathname, O_WRONLY | O_CREAT | O_TRUNC, 0666)))
-	perror("open");
+	fprintf(stderr, "-hsh: %s: %s\n", pathname, strerror(errno));
     else if (dup2(*pfd, STDERR_FILENO) != STDERR_FILENO)
 	perror("dup2 error for stderr");
     else
@@ -133,7 +146,7 @@ void del_args(int idx, int *pnargs, char **args)
  * @return: 0 if no exceptions otherwise 1 */
 int io_redirect(int *pnargs, char **args)
 {
-    int i = 1, rel = 0, fd[3];
+    int i = 0, rel = 0, fd[3];	/* i needs to be started with 0 */
 
     if (io_exception_hdlr(*pnargs, args))
 	return 1;
@@ -142,15 +155,19 @@ int io_redirect(int *pnargs, char **args)
      * file names in args; using del_args() to do that */
     while (i < *pnargs-1) {
 	if (!strcmp(args[i], "<")) {
-	    stdin_save = dup(STDIN_FILENO);
+	    if(stdin_save == -1) stdin_save = dup(STDIN_FILENO);
 	    if (-1 == (rel = redirect_stdin(&fd[0], args[i+1]))) break;
 	    else del_args(i, pnargs, args);
-	} else if (!strcmp(args[i], ">")) {
-	    stdout_save = dup(STDOUT_FILENO);
+	} else if (!strcmp(args[i], ">") || !strcmp(args[i], "1>")) {
+	    if(stdout_save == -1) stdout_save = dup(STDOUT_FILENO);
 	    if (-1 == (rel = redirect_stdout(&fd[1], args[i+1]))) break;
 	    else del_args(i, pnargs, args);
+	} else if (!strcmp(args[i], ">>")) {
+	    if(stdout_save == -1) stdout_save = dup(STDOUT_FILENO);
+	    if (-1 == (rel = redirect_stdout_append(&fd[1], args[i+1]))) break;
+	    else del_args(i, pnargs, args);
 	} else if (!strcmp(args[i], "2>")) {
-	    stderr_save = dup(STDERR_FILENO);
+	    if(stderr_save == -1) stderr_save = dup(STDERR_FILENO);
 	    if (-1 == (rel = redirect_stderr(&fd[2], args[i+1]))) break;
 	    else del_args(i, pnargs, args);
 	} else {
