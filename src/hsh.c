@@ -390,13 +390,7 @@ void execute_line()
 	/* display shell prompt and read user inputs */
 	if (rl_gets(prompt) == NULL || !*cmd_buf)
 	    continue;
-		
-	/* tokenize command line string */
-	if (-1 == (nargs = cmd_tokenizer(args))) {
-	    fprintf(stderr, "-hsh: too many arguments\n");
-	    continue;
-	}
-
+	
 	// call parse_args function here.
 	// if pipeline symbol presents,
 	// fork processes to execute codes below
@@ -404,6 +398,12 @@ void execute_line()
 	// use a for-loop to for processes
 	// and return nargs and args information 
 	// for each forked process
+		
+	/* tokenize command line string */
+	if (-1 == (nargs = cmd_tokenizer(args))) {
+	    fprintf(stderr, "-hsh: too many arguments\n");
+	    continue;
+	}
 	
 	/* check for io redirection */
 	if (io_redirect(&nargs, args))
