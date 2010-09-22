@@ -160,15 +160,19 @@ static int cmd_tokenizer(char **args)
 
 /* Parse command line argment list for pipelining
  * @args: a buffer to hold tokens
- * @return: # of tokens; -1 when too much tokens */
-/*static void parse_args(char **args)
+ * @return: # of tokens; -1 when too much tokens 
+void parse_args(char **args)
 {
-    int i;
+    // we can add argument evaluation here;
+    // e.g. codes for environmental variables
+    // can be put here!
+
+    int i, count = 0;
     for (i = 0; args[i] ; i++) {
 	if (!strcmp(args[i], "|")) args[i] = (char *) NULL;
     }
-}*/
-
+}
+*/
 /* Look up the name of a command.
  * @name: the name of the command
  * @return: a pointer to that BUILTIN entry;  
@@ -224,8 +228,8 @@ static char *find_cmd(struct List *paths, char *args[])
 	}
 
 	len = strlen((char*)itr->data) + strlen("/") + strlen(args[0]);
-	path = (char *) malloc(len + 1);
 	
+	path = (char *) malloc(len + 1);
 	if (path) {
 	    memset(path, 0, 1);
 	    strcat(path, (char*)itr->data);
@@ -417,7 +421,7 @@ void execute_line()
 	    execute_cmd(cmd_path, args);
 	    restore_stdio();
 	    free(cmd_path);
-	} else if (args[0]) {	
+	} else if (nargs) {	
 	    /* no such command and command line is not empty;
 	     * command line can be empty when reached here for 
 	     * command such as: "> ls" */
