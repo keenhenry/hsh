@@ -9,8 +9,8 @@ CFLAGS  = -g -Wall -I.
 LDFLAGS = -lreadline
 
 HEAD = list.h hsh.h
-SRCS = hsh.c list.c builtins.c main.c io_redirect.c
-OBJS = hsh.o list.o builtins.o main.o io_redirect.o
+SRCS = hsh.c list.c builtins.c main.c io_redirect.c pipe.c
+OBJS = hsh.o list.o builtins.o main.o io_redirect.o pipe.o
 TAR  = hsh
 
 build: all
@@ -20,7 +20,7 @@ all: $(TAR)
 $(TAR): $(OBJS)
 	$(CC) -g $(OBJS) $(LDFLAGS) -o $(TAR)
 
-$(TAR).o: $(HEAD) main.c builtins.c list.c 
+$(TAR).o: $(HEAD) main.c builtins.c list.c io_redirect.c pipe.c
 
 test: build
 	valgrind -v --log-file=valgrind.log --tool=memcheck --leak-check=full ./hsh

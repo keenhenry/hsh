@@ -25,6 +25,13 @@
  * Global Data Structures *
  =========================*/
 
+/* A structure which contains information a process 
+ * needs, namely, # of arguments and argument list  */
+typedef struct {
+    int argc;		/* # of cmd line arguments to a process */
+    char **argv;	/* the argument list of that process */
+} PS_INFO;
+
 /* A structure which contains information on the shell 
  * builtin commands this program can understand */
 typedef int hsh_btfunc_t (int, char**);	/* builtin function pointer type */
@@ -44,6 +51,7 @@ void list_clean(struct List *list);
 
 /* hsh helper function signatures */
 char *dupstr (char *s);
+void die_with_error(char *msg);
 
 /* readline interface */
 char *readline(const char *prompt);
@@ -54,6 +62,13 @@ char **hsh_completion(const char *, int, int);
 /* IO redirection interface */
 int io_redirect(int *pnargs, char **args);
 void restore_stdio(void);
+
+/* Pipeline interface */
+int pipe_exception_hdlr(int nargs, char **args);
+int count_processes(char **args); 
+void prepare_arg_lists(int num_of_ps);
+void set_ps_infos(int num_of_ps, char **args);
+void clear_ps_infos(PS_INFO *array);
 
 /* builtin command interface */
 int builtin_exit(int nargs, char **args);

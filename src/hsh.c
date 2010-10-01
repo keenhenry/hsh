@@ -32,7 +32,10 @@ char rel_cwd[PATH_SIZE] = {0};
 static char hostname[30] = {0};
 
 /* a pointer to command line buffer */
-char *cmd_buf = (char*)NULL;	
+char *cmd_buf = (char*) NULL;
+
+/* a pointer to an array of PS_INFOs */
+PS_INFO *arr_ps_infos = (PS_INFO *) NULL;
 
 //===================================================================//
 // 	     	 						     //
@@ -41,7 +44,7 @@ char *cmd_buf = (char*)NULL;
 //===================================================================//
 
 /* show error message and exit shell */
-static void die_with_error(char *msg)
+void die_with_error(char *msg)
 {
 	perror(msg);
 	exit(EXIT_FAILURE);
@@ -160,19 +163,33 @@ static int cmd_tokenizer(char **args)
 
 /* Parse command line argment list for pipelining
  * @args: a buffer to hold tokens
- * @return: # of tokens; -1 when too much tokens 
-void parse_args(char **args)
+ * @return: # of processes needs to fork; 
+ * 	    0 if none;
+ * 	   -1 if exception occurred */
+int parse_args(int nargs, char **args)
 {
+    int num_of_ps;
+
     // we can add argument evaluation here;
     // e.g. codes for environmental variables
     // can be put here!
+    
+    /* check syntax errors first */
+    if (pipe_exception_hdlr(nargs, args))
+	return -1;
+  
+    /* find the # of processes needed to fork */
+    num_of_ps = count_processes(args);
 
-    int i, count = 0;
-    for (i = 0; args[i] ; i++) {
-	if (!strcmp(args[i], "|")) args[i] = (char *) NULL;
-    }
+    /* allocate memory for arr_ps_infos */
+    prepare_arg_lists(num_of_ps);
+
+    /* fill in information for arr_ps_infos */
+    if (arr_ps_infos)
+    	set_ps_infos(num_of_ps, args);
+    return num_of_ps;
 }
-*/
+
 /* Look up the name of a command.
  * @name: the name of the command
  * @return: a pointer to that BUILTIN entry;  
@@ -374,6 +391,7 @@ void execute_line()
 {
     int nargs;				/* # of args */
     int rel_blt;			/* return value of execute_builtin() */
+    int n_of_ps;			/* number of processes needed to fork */
 	
     char *prompt  = (char*) NULL;	/* command line prompt */
     char *args[MAX_NUM_ARGS+1];		/* buffer holding cmd line args */
@@ -391,6 +409,12 @@ void execute_line()
 	if (rl_gets(prompt) == NULL || !*cmd_buf)
 	    continue;
 	
+	/* tokenize command line string */
+	if (-1 == (nargs = cmd_tokenizer(args))) {
+	    fprintf(stderr, "-hsh: too many arguments\n");
+	    continue;
+	}
+	
 	// call parse_args function here.
 	// if pipeline symbol presents,
 	// fork processes to execute codes below
@@ -398,13 +422,20 @@ void execute_line()
 	// use a for-loop to for processes
 	// and return nargs and args information 
 	// for each forked process
-		
-	/* tokenize command line string */
-	if (-1 == (nargs = cmd_tokenizer(args))) {
-	    fprintf(stderr, "-hsh: too many arguments\n");
+	n_of_ps = parse_args(nargs, args);
+	if (-1 == n_of_ps)
 	    continue;
+
+	// debugging code: print arr_ps_infos
+/*	int i = 0, j;
+	for (;i < n_of_ps; i++) {
+	    printf("PS %d: %d arguments: ", i, arr_ps_infos[i].argc);
+	    for (j = 0; j < arr_ps_infos[i].argc; j++)
+	        printf("%s ", *(arr_ps_infos[i].argv + j));
+	    printf("\n");
 	}
-	
+*/
+	if (1 == n_of_ps) {
 	/* check for io redirection */
 	if (io_redirect(&nargs, args))
 	    continue;
@@ -429,7 +460,8 @@ void execute_line()
 	    fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
 	} else {
 	    restore_stdio();
-	} 
+	}
+	}
     }
 
     /* release memory from control */
@@ -445,5 +477,6 @@ void clean_shell()
 {
     list_clean(&dirs_stack);
     list_clean(&paths_list);
+    clear_ps_infos(arr_ps_infos);
     clear_history();
 }
