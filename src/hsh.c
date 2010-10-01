@@ -164,7 +164,7 @@ static int cmd_tokenizer(char **args)
 /* Parse command line argment list for pipelining
  * @args: a buffer to hold tokens
  * @return: # of processes needs to fork; 
- * 	    0 if none;
+ * 	    1 if none;
  * 	   -1 if exception occurred */
 int parse_args(int nargs, char **args)
 {
