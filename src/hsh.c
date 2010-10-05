@@ -145,20 +145,23 @@ static char *rl_gets(char *prompt)
  * @return: # of tokens; -1 when too much tokens */
 static int cmd_tokenizer(char **args)
 {
-	int 	count = 0;
-	char 	*token;
+    int  count = 0;
+    char *token;
 
-	token = strtok(cmd_buf, " \t");
-	while (token) {
-		args[count++] = token;
-		token = strtok(NULL, " \t");
-	}
+    token = strtok(cmd_buf, " \t");
+    while (token) {
+	args[count++] = token;
+	token = strtok(NULL, " \t");
+    }
 
-	if (count > MAX_NUM_ARGS)
-		count = -1;
-	else
-		args[count] = NULL;
-	return count;
+    if (count > MAX_NUM_ARGS) {
+        fprintf(stderr, "-hsh: too many arguments\n");
+        count = -1;
+    } else {
+	args[count] = NULL;
+    }
+    
+    return count;
 }
 
 /* Parse command line argment list for pipelining
@@ -360,6 +363,65 @@ char *command_generator (const char *text, int state)
     return ((char *)NULL);
 }
 
+
+//===================================================================//
+// 	     	 						     //
+// 	     	 	IPC related functions			     //
+// 	     	 						     //
+//===================================================================//
+
+/* A function to execute single-threaded command.
+ * @pnargs: pointer to nargs variable in execute_line() function
+ * @args: cmd line argument list
+ * @cmd_path: a buffer to store system utility cmd path
+ * @return: 1 to continue in loop in the calling function;
+ * 	    0 to return normally to the calling function;
+ * 	    -1 to break in the calling function */
+int single_threaded_cmd(int *pnargs, char **args, char *cmd_path)
+{
+    int rel_blt;
+
+    /* check for io redireciton errors */
+    if (io_redirect(pnargs, args))
+        return 1;
+
+    /* execute builtin cmd and check for errors */
+    if (-1 == (rel_blt = execute_builtin(*pnargs, args))) {
+    	restore_stdio();
+	return -1;
+    } else if (rel_blt >= 0) {
+        restore_stdio();
+        return 1;
+    } 
+    
+    /* execute system utility and check for errors */
+    if ((cmd_path = find_cmd(&paths_list, args))) {
+        /* reach here if rel_blt == -2 && cmd_path != NULL */
+        execute_cmd(cmd_path, args);
+        restore_stdio();
+        free(cmd_path);
+    } else if (*pnargs) {	
+    	/* no such command and command line is not empty */
+	restore_stdio();
+	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
+    } else {
+	/* command line is empty when reaching here;
+	 * it is empty for command such as: "> ls" */
+        restore_stdio();
+    }
+    
+    return 0;
+}
+
+/* A function to execute multi-threaded command.
+ * @pnargs: pointer to nargs variable in execute_line() function
+ * @args: cmd line argument list
+ * @cmd_path: a buffer to store system utility cmd path */
+int multi_threaded_cmd()
+{
+    return 0;
+}
+
 //===================================================================//
 // 	     	 						     //
 // 	     	 	Hsh Primary Functions	    	     	     //
@@ -389,17 +451,17 @@ void init_shell()
 /* Execute command line */ 
 void execute_line()
 {
-    int nargs;				/* # of args */
-    int rel_blt;			/* return value of execute_builtin() */
-    int n_of_ps;			/* number of processes needed to fork */
+    int nargs;			    /* # of args */
+    int rel_stc;		    /* return value of single_threaded_cmd() */
+    int n_of_ps;		    /* number of processes needed to fork */
 	
-    char *prompt  = (char*) NULL;	/* command line prompt */
-    char *args[MAX_NUM_ARGS+1];		/* buffer holding cmd line args */
-    char *cmd_path;			/* command path */
+    char *prompt  = (char*) NULL;   /* command line prompt */
+    char *args[MAX_NUM_ARGS+1];	    /* buffer holding cmd line args */
+    char *cmd_path = (char*) NULL;  /* command path */
 
     while (1) {
-	/* get current working directory in relative path 
-	 * to home directory */
+	/* get current working directory in relative path to 
+	 * home directory */	
 	path_abs2rel();
 	
 	/* making command line prompt for user */
@@ -410,57 +472,30 @@ void execute_line()
 	    continue;
 	
 	/* tokenize command line string */
-	if (-1 == (nargs = cmd_tokenizer(args))) {
-	    fprintf(stderr, "-hsh: too many arguments\n");
-	    continue;
-	}
-	
-	// call parse_args function here.
-	// if pipeline symbol presents,
-	// fork processes to execute codes below
-	// otherwise do not fork.
-	// use a for-loop to for processes
-	// and return nargs and args information 
-	// for each forked process
-	n_of_ps = parse_args(nargs, args);
-	if (-1 == n_of_ps)
+	if (-1 == (nargs = cmd_tokenizer(args)))
 	    continue;
 
-	// debugging code: print arr_ps_infos
-/*	int i = 0, j;
+	/* parse argument list for pipelining */
+	if (-1 == (n_of_ps = parse_args(nargs, args)))
+	    continue;
+
+	/* debugging code: print arr_ps_infos
+	int i = 0, j;
 	for (;i < n_of_ps; i++) {
 	    printf("PS %d: %d arguments: ", i, arr_ps_infos[i].argc);
 	    for (j = 0; j < arr_ps_infos[i].argc; j++)
 	        printf("%s ", *(arr_ps_infos[i].argv + j));
 	    printf("\n");
-	}
-*/
-	if (1 == n_of_ps) {
-	/* check for io redirection */
-	if (io_redirect(&nargs, args))
-	    continue;
+	}*/
 
-	/* execute commands */
-	if (-1 == (rel_blt = execute_builtin(nargs, args))) {
-	    restore_stdio();
-	    break;
-	} else if (rel_blt >= 0) {
-	    restore_stdio();
-	    continue;
-	} else if ((cmd_path = find_cmd(&paths_list, args))) {
-	    /* reach here if rel_blt == -2 && cmd_path != NULL */
-	    execute_cmd(cmd_path, args);
-	    restore_stdio();
-	    free(cmd_path);
-	} else if (nargs) {	
-	    /* no such command and command line is not empty;
-	     * command line can be empty when reached here for 
-	     * command such as: "> ls" */
-	    restore_stdio();
-	    fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
-	} else {
-	    restore_stdio();
-	}
+	if (1 == n_of_ps) {     /* single-threaded command */
+	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, cmd_path);
+	    if (rel_stc == 1)
+		continue;
+	    if (rel_stc == -1)
+		break;
+	} else {		/* multi-threaded command */
+	    multi_threaded_cmd();
 	}
     }
 
