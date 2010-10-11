@@ -7,6 +7,7 @@
 #include "hsh.h"
 
 extern PS_INFO *arr_ps_infos;
+extern int single_threaded_cmd(int *pnargs, char **args, char *cmd_path, int mode);
 
 //===================================================================//
 // 	     	 						     //
@@ -45,7 +46,7 @@ int pipe_exception_hdlr(int nargs, char **args)
 
 //===================================================================//
 // 	     	 						     //
-// 	     	    	   Pipeline Interface		     	     //
+// 	     	    Command Line Parsing Interface		     //
 // 	     	 						     //
 //===================================================================//
 
@@ -115,4 +116,130 @@ void set_ps_infos(int num_of_ps, char **args)
 void clear_ps_infos(PS_INFO *array)
 {
     if (array) free(array);
+}
+
+//===================================================================//
+// 	     	 						     //
+// 	     	    	   Pipeline Interface		     	     //
+// 	     	 						     //
+//===================================================================//
+
+/* Pipe line function for a single thread.
+ * @n_of_th: number of threads in the line
+ * @i: index of loop; index of threads in arr_ps_infos
+ * @cmd_path: a buffer to store system utility cmd path
+ * @return: 
+int pipeline(int n_of_th, int i, int pipefd[], char *cmd_path)  
+{
+    // need to save stdin/stdout/stderr before dup2
+    // implement pipe mechanisms and restoration of io 
+    // in pipe.c
+    
+    if (i == 0) {    // the youngest descendent
+	dup2(pipefd[1], STDOUT_FILENO);
+	close(pipefd[0]);
+    	//close(pipefd[1]);
+    } else if (i == n_of_th-1) {    // parent of threads
+	dup2(pipefd[0], STDIN_FILENO);
+	//close(pipefd[0]);
+	close(pipefd[1]);
+    } else {	// descendents in the middle 
+	int pipefd2[2];
+    	if (-1 == pipe(pipefd2))
+            die_with_error("pipe");
+	dup2(pipefd[0], STDIN_FILENO);
+	dup2(pipefd2[1], STDOUT_FILENO);
+    	//close(pipefd[0]);
+    	close(pipefd[1]);
+    	close(pipefd2[0]);
+    	//close(pipefd2[1]);
+    }
+   
+    return single_threaded_cmd(&arr_ps_infos[i].argc, 
+		    		arr_ps_infos[i].argv, cmd_path, 1);
+}*/
+
+/* Closing all pipes open for IPC.
+ * @pipes: array of pipes 
+ * @n_of_th: number of processes/threads created
+ * @return: 0 if creation of pipes succeeded; 
+ * 	    otherwise return -1 */
+int set_pipes(int (*pipes)[2], int n_of_th)
+{
+    int i, rel = 0;
+
+    /* n_of_th processes need (n_of_th - 1) pipes */
+    for (i = 0; i < n_of_th-1; ++i) {
+	if (-1 == (rel = pipe(pipes[i]))) {
+	    perror("pipe");
+	    break;
+	}
+    }
+    return rel;
+}
+
+/* Closing all pipes open for IPC.
+ * @pipes: array of pipes 
+ * @n_of_th: number of threads/processes in the pipeline */
+void close_pipes(int (*pipes)[2], int n_of_th)
+{
+    int i;
+    for (i = 0; i < n_of_th-1; ++i) {
+	close(pipes[i][0]);	/* close read end of ith pipe */
+	close(pipes[i][1]); 	/* close write end of ith pipe */
+    }
+}
+
+/* Wait for the first child process in the processes chain.
+ * @pid: process id of the first child process
+ * @return: the return value of waitpid() function */
+int wait_first_child(pid_t pid)
+{
+    int rel;
+    if (-1 == (rel = waitpid(pid, NULL, 0)))
+    	perror("waitpid");
+    return rel;
+}
+
+/* Connect pipe read end to stdin.
+ * @pipes: array of pipe file descriptors
+ * @idx: the pipe index we are dup-ing
+ * @n_of_th: number of threads/processes in the pipeline
+ * @return: the return value of dup2 system call */
+int dup_pipe_read(int (*pipes)[2], int idx, int n_of_th)
+{
+    int rel; 
+    if (-1 == (rel = dup2(pipes[idx][0], STDIN_FILENO)))
+    	perror("dup2");
+    close_pipes(pipes, n_of_th);
+    return rel;
+}
+
+/* Connect pipe write end to stdout.
+ * @pipes: array of pipe file descriptors 
+ * @idx: the pipe index we are dup-ing
+ * @n_of_th: number of threads/processes in the pipeline
+ * @return: the return value of dup2 system call */
+int dup_pipe_write(int (*pipes)[2], int idx, int n_of_th)
+{
+    int rel; 
+    if (-1 == (rel = dup2(pipes[idx][1], STDOUT_FILENO)))
+    	perror("dup2");
+    close_pipes(pipes, n_of_th);
+    return rel;
+}
+
+/* Connect pipe write end to stdout and pipe read end to stdin.
+ * @pipes: array of pipe file descriptors
+ * @idx: the process index
+ * @n_of_th: number of threads/processes in the pipeline
+ * @return: the return value of dup2 system call */
+int dup_pipe_read_write(int (*pipes)[2], int idx, int n_of_th)
+{
+    int rel; 
+    if (-1 == (rel = dup2(pipes[n_of_th-1-idx][0], STDIN_FILENO)) ||
+	-1 == (rel = dup2(pipes[n_of_th-2-idx][1], STDOUT_FILENO)))
+    	perror("dup2 read write");
+    close_pipes(pipes, n_of_th);
+    return rel;
 }

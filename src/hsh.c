@@ -374,10 +374,11 @@ char *command_generator (const char *text, int state)
  * @pnargs: pointer to nargs variable in execute_line() function
  * @args: cmd line argument list
  * @cmd_path: a buffer to store system utility cmd path
+ * @mode: 0 is single-threaded mode; 1 is multi-threaded mode
  * @return: 1 to continue in loop in the calling function;
  * 	    0 to return normally to the calling function;
  * 	    -1 to break in the calling function */
-int single_threaded_cmd(int *pnargs, char **args, char *cmd_path)
+int single_threaded_cmd(int *pnargs, char **args, char *cmd_path, int mode)
 {
     int rel_blt;
 
@@ -391,13 +392,17 @@ int single_threaded_cmd(int *pnargs, char **args, char *cmd_path)
 	return -1;
     } else if (rel_blt >= 0) {
         restore_stdio();
-        return 1;
-    } 
+	if (mode == 1) _exit(EXIT_SUCCESS);    /* terminate thread */
+	else return 1;
+    }
     
     /* execute system utility and check for errors */
     if ((cmd_path = find_cmd(&paths_list, args))) {
         /* reach here if rel_blt == -2 && cmd_path != NULL */
-        execute_cmd(cmd_path, args);
+	if (mode == 0)
+            execute_cmd(cmd_path, args);
+	else
+	    execv(cmd_path, args);
         restore_stdio();
         free(cmd_path);
     } else if (*pnargs) {	
@@ -406,7 +411,7 @@ int single_threaded_cmd(int *pnargs, char **args, char *cmd_path)
 	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
     } else {
 	/* command line is empty when reaching here;
-	 * it is empty for command such as: "> ls" */
+	 * it is empty for commands such as: "> ls" */
         restore_stdio();
     }
     
@@ -414,12 +419,53 @@ int single_threaded_cmd(int *pnargs, char **args, char *cmd_path)
 }
 
 /* A function to execute multi-threaded command.
- * @pnargs: pointer to nargs variable in execute_line() function
- * @args: cmd line argument list
- * @cmd_path: a buffer to store system utility cmd path */
-int multi_threaded_cmd()
+ * @n_of_th: number of threads in the line */
+void multi_threaded_cmd(int n_of_th)
 {
-    return 0;
+    int i, pipes[n_of_th-1][2];
+    pid_t pid;
+
+    /* set up pipes for IPC */
+    if (-1 == set_pipes(pipes, n_of_th))
+	return;
+
+    /* forking processes; this is idiom for
+     * forking a 'chain' of processes. the idea 
+     * is to seperate processes creation with
+     * codes executed inside processes! */
+    for(i = n_of_th; i > 0; --i)    // watch out for index
+        if ((pid = fork())) break;
+    
+    /* conditional processes execution flow here */
+    if (i == n_of_th) {	/* parent of all processes */
+	close_pipes(pipes, n_of_th);
+    	wait_first_child(pid); 
+    } else if (i == n_of_th - 1) { /* first child in the chain */
+	if (-1 == dup_pipe_read(pipes, 0, n_of_th))
+	    _exit(EXIT_FAILURE);
+
+	char buf;
+	while (read(STDIN_FILENO, &buf, 1) > 0)
+	    write(STDOUT_FILENO, &buf, 1);
+	
+	_exit(EXIT_SUCCESS);
+    } else if (i == 0) {
+	/* last child in the chain gets here */
+	if (-1 == dup_pipe_write(pipes, n_of_th-2, n_of_th))
+	    _exit(EXIT_FAILURE);
+	
+	write(STDOUT_FILENO, "msg sent from last child\n", 26);
+	_exit(EXIT_SUCCESS);
+    } else {
+	/* processes in the middle of the chain get here */
+	if (-1 == dup_pipe_read_write(pipes, i, n_of_th))
+	    _exit(EXIT_FAILURE);
+	
+	char buf;
+	while (read(STDIN_FILENO, &buf, 1) > 0)
+	    write(STDOUT_FILENO, &buf, 1);
+	_exit(EXIT_SUCCESS);
+    }	
 }
 
 //===================================================================//
@@ -489,13 +535,11 @@ void execute_line()
 	}*/
 
 	if (1 == n_of_ps) {     /* single-threaded command */
-	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, cmd_path);
-	    if (rel_stc == 1)
-		continue;
-	    if (rel_stc == -1)
-		break;
+	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, cmd_path, 0);
+	    if (rel_stc ==  1) continue;
+	    if (rel_stc == -1) break;
 	} else {		/* multi-threaded command */
-	    multi_threaded_cmd();
+	    multi_threaded_cmd(n_of_ps);
 	}
     }
 

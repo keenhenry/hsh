@@ -65,6 +65,14 @@ void restore_stdio(void);
 
 /* Pipeline interface */
 int pipe_exception_hdlr(int nargs, char **args);
+int pipeline(int n_of_th, int i, int pipefd[], char *cmd_path);  
+int set_pipes(int (*pipes)[2], int n_of_th);
+int wait_first_child(pid_t pid);
+int dup_pipe_read(int (*pipes)[2], int idx, int n_of_th);
+int dup_pipe_write(int (*pipes)[2], int idx, int n_of_th);
+int dup_pipe_read_write(int (*pipes)[2], int idx, int n_of_th);
+void close_pipes(int (*pipes)[2], int n_of_th);
+
 int count_processes(char **args); 
 void prepare_arg_lists(int num_of_ps);
 void set_ps_infos(int num_of_ps, char **args);
