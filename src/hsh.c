@@ -65,6 +65,14 @@ char *dupstr (char *s)
     return (r);
 }
 
+/* set initial values for paths_list variable 
+ * at shell starting up. */
+void set_paths_list(void)
+{
+    push(&paths_list, dupstr("/bin"));
+    push(&paths_list, dupstr("/usr/bin"));
+}
+
 /* Convert absolute pathname into relative 
  * (to home directory) pathname. */
 static void path_abs2rel()
@@ -373,13 +381,13 @@ char *command_generator (const char *text, int state)
 /* A function to execute single-threaded command.
  * @pnargs: pointer to nargs variable in execute_line() function
  * @args: cmd line argument list
- * @cmd_path: a buffer to store system utility cmd path
  * @mode: 0 is single-threaded mode; 1 is multi-threaded mode
  * @return: 1 to continue in loop in the calling function;
  * 	    0 to return normally to the calling function;
  * 	    -1 to break in the calling function */
-int single_threaded_cmd(int *pnargs, char **args, char *cmd_path, int mode)
+int single_threaded_cmd(int *pnargs, char **args, int mode)
 {
+    char *cmd_path = (char*) NULL;  /* command path */
     int rel_blt;
 
     /* check for io redireciton errors */
@@ -478,19 +486,22 @@ void multi_threaded_cmd(int n_of_th)
  * before entering shell */
 void init_shell()
 {
-	/* initialize environmental variables for shell */
-	list_init(&dirs_stack);
-	list_init(&paths_list);
-
-	/* Bind our completer. */	
-	initialize_readline();
+    /* creat environmental variables for shell */
+    list_init(&dirs_stack);
+    list_init(&paths_list);
 	
-	/* start using history */
-	using_history();
+    /* get hostname */
+    if (gethostname(hostname, sizeof(hostname)))
+	die_with_error("gethostname");
 
-	/* get hostname */
-	if (gethostname(hostname, sizeof(hostname)))
-		die_with_error("gethostname");
+    /* initialize paths_list */
+    set_paths_list();
+
+    /* Bind our completer. */	
+    initialize_readline();
+	
+    /* start using history */
+    using_history();
 }
 
 
@@ -503,7 +514,6 @@ void execute_line()
 	
     char *prompt  = (char*) NULL;   /* command line prompt */
     char *args[MAX_NUM_ARGS+1];	    /* buffer holding cmd line args */
-    char *cmd_path = (char*) NULL;  /* command path */
 
     while (1) {
 	/* get current working directory in relative path to 
@@ -535,7 +545,7 @@ void execute_line()
 	}*/
 
 	if (1 == n_of_ps) {     /* single-threaded command */
-	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, cmd_path, 0);
+	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, 0);
 	    if (rel_stc ==  1) continue;
 	    if (rel_stc == -1) break;
 	} else {		/* multi-threaded command */
