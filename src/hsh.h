@@ -20,6 +20,8 @@
 /* definition of symbolic constants */
 #define MAX_NUM_ARGS 256
 #define PATH_SIZE 4096
+#define TRUE 1
+#define FALSE 0
 
 /*========================= 
  * Global Data Structures *
@@ -65,7 +67,7 @@ void restore_stdio(void);
 
 /* Pipeline interface */
 int pipe_exception_hdlr(int nargs, char **args);
-int pipeline(int n_of_th, int i, int pipefd[], char *cmd_path);  
+void pipe_process(int n_of_th, int i, int (*pipes)[], pid_t pid); 
 int set_pipes(int (*pipes)[2], int n_of_th);
 int wait_first_child(pid_t pid);
 int dup_pipe_read(int (*pipes)[2], int idx, int n_of_th);

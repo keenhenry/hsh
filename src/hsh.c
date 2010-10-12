@@ -371,7 +371,6 @@ char *command_generator (const char *text, int state)
     return ((char *)NULL);
 }
 
-
 //===================================================================//
 // 	     	 						     //
 // 	     	 	IPC related functions			     //
@@ -381,49 +380,57 @@ char *command_generator (const char *text, int state)
 /* A function to execute single-threaded command.
  * @pnargs: pointer to nargs variable in execute_line() function
  * @args: cmd line argument list
- * @mode: 0 is single-threaded mode; 1 is multi-threaded mode
+ * @ipc: 0 is single-threaded mode; 1 is multi-threaded mode
  * @return: 1 to continue in loop in the calling function;
  * 	    0 to return normally to the calling function;
  * 	    -1 to break in the calling function */
-int single_threaded_cmd(int *pnargs, char **args, int mode)
+int single_threaded_cmd(int *pnargs, char **args, int ipc)
 {
-    char *cmd_path = (char*) NULL;  /* command path */
     int rel_blt;
+    char *cmd_path = (char*) NULL;  /* command path */
 
     /* check for io redireciton errors */
-    if (io_redirect(pnargs, args))
-        return 1;
+    if (io_redirect(pnargs, args)) {
+	if (ipc) _exit(EXIT_FAILURE);
+	else return 1;
+    }
 
     /* execute builtin cmd and check for errors */
     if (-1 == (rel_blt = execute_builtin(*pnargs, args))) {
     	restore_stdio();
-	return -1;
+	if (ipc) _exit(EXIT_FAILURE);
+	else return -1;
     } else if (rel_blt >= 0) {
         restore_stdio();
-	if (mode == 1) _exit(EXIT_SUCCESS);    /* terminate thread */
+	if (ipc) _exit(EXIT_SUCCESS);    /* terminate thread */
 	else return 1;
     }
     
     /* execute system utility and check for errors */
     if ((cmd_path = find_cmd(&paths_list, args))) {
         /* reach here if rel_blt == -2 && cmd_path != NULL */
-	if (mode == 0)
-            execute_cmd(cmd_path, args);
-	else
-	    execv(cmd_path, args);
-        restore_stdio();
-        free(cmd_path);
+	if (ipc) {
+	    execv(cmd_path, args);    // should not return
+	    perror("execv");
+	    _exit(EXIT_FAILURE);
+	} else {   
+	    execute_cmd(cmd_path, args);
+            restore_stdio();
+            free(cmd_path);
+	}
     } else if (*pnargs) {	
     	/* no such command and command line is not empty */
 	restore_stdio();
 	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
+	if (ipc) _exit(EXIT_FAILURE);
     } else {
 	/* command line is empty when reaching here;
 	 * it is empty for commands such as: "> ls" */
         restore_stdio();
     }
     
-    return 0;
+    if (ipc) _exit(EXIT_SUCCESS);
+    else return 0;
 }
 
 /* A function to execute multi-threaded command.
@@ -444,36 +451,8 @@ void multi_threaded_cmd(int n_of_th)
     for(i = n_of_th; i > 0; --i)    // watch out for index
         if ((pid = fork())) break;
     
-    /* conditional processes execution flow here */
-    if (i == n_of_th) {	/* parent of all processes */
-	close_pipes(pipes, n_of_th);
-    	wait_first_child(pid); 
-    } else if (i == n_of_th - 1) { /* first child in the chain */
-	if (-1 == dup_pipe_read(pipes, 0, n_of_th))
-	    _exit(EXIT_FAILURE);
-
-	char buf;
-	while (read(STDIN_FILENO, &buf, 1) > 0)
-	    write(STDOUT_FILENO, &buf, 1);
-	
-	_exit(EXIT_SUCCESS);
-    } else if (i == 0) {
-	/* last child in the chain gets here */
-	if (-1 == dup_pipe_write(pipes, n_of_th-2, n_of_th))
-	    _exit(EXIT_FAILURE);
-	
-	write(STDOUT_FILENO, "msg sent from last child\n", 26);
-	_exit(EXIT_SUCCESS);
-    } else {
-	/* processes in the middle of the chain get here */
-	if (-1 == dup_pipe_read_write(pipes, i, n_of_th))
-	    _exit(EXIT_FAILURE);
-	
-	char buf;
-	while (read(STDIN_FILENO, &buf, 1) > 0)
-	    write(STDOUT_FILENO, &buf, 1);
-	_exit(EXIT_SUCCESS);
-    }	
+    /* process code execution */
+    pipe_process(n_of_th, i, pipes, pid);
 }
 
 //===================================================================//

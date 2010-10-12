@@ -7,7 +7,7 @@
 #include "hsh.h"
 
 extern PS_INFO *arr_ps_infos;
-extern int single_threaded_cmd(int *pnargs, char **args, char *cmd_path, int mode);
+extern int single_threaded_cmd(int *pnargs, char **args, int mode);
 
 //===================================================================//
 // 	     	 						     //
@@ -124,41 +124,6 @@ void clear_ps_infos(PS_INFO *array)
 // 	     	 						     //
 //===================================================================//
 
-/* Pipe line function for a single thread.
- * @n_of_th: number of threads in the line
- * @i: index of loop; index of threads in arr_ps_infos
- * @cmd_path: a buffer to store system utility cmd path
- * @return: 
-int pipeline(int n_of_th, int i, int pipefd[], char *cmd_path)  
-{
-    // need to save stdin/stdout/stderr before dup2
-    // implement pipe mechanisms and restoration of io 
-    // in pipe.c
-    
-    if (i == 0) {    // the youngest descendent
-	dup2(pipefd[1], STDOUT_FILENO);
-	close(pipefd[0]);
-    	//close(pipefd[1]);
-    } else if (i == n_of_th-1) {    // parent of threads
-	dup2(pipefd[0], STDIN_FILENO);
-	//close(pipefd[0]);
-	close(pipefd[1]);
-    } else {	// descendents in the middle 
-	int pipefd2[2];
-    	if (-1 == pipe(pipefd2))
-            die_with_error("pipe");
-	dup2(pipefd[0], STDIN_FILENO);
-	dup2(pipefd2[1], STDOUT_FILENO);
-    	//close(pipefd[0]);
-    	close(pipefd[1]);
-    	close(pipefd2[0]);
-    	//close(pipefd2[1]);
-    }
-   
-    return single_threaded_cmd(&arr_ps_infos[i].argc, 
-		    		arr_ps_infos[i].argv, cmd_path, 1);
-}*/
-
 /* Closing all pipes open for IPC.
  * @pipes: array of pipes 
  * @n_of_th: number of processes/threads created
@@ -242,4 +207,24 @@ int dup_pipe_read_write(int (*pipes)[2], int idx, int n_of_th)
     	perror("dup2 read write");
     close_pipes(pipes, n_of_th);
     return rel;
+}
+
+/* Setup pipes for a single process run the process in the pipeline.
+ * @n_of_th: number of threads in the line
+ * @i: index of loop; index of threads in arr_ps_infos */
+void pipe_process(int n_of_th, int i, int (*pipes)[], pid_t pid)  
+{
+    if (i == n_of_th) {	/* parent of all processes */
+	close_pipes(pipes, n_of_th);
+    	wait_first_child(pid); 
+    } else if (i == n_of_th - 1) {   /* first child in the chain */
+	if (-1 == dup_pipe_read(pipes, 0, n_of_th)) _exit(EXIT_FAILURE);
+    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    } else if (i == 0) {    /* last child in the chain gets here */
+	if (-1 == dup_pipe_write(pipes, n_of_th-2, n_of_th)) _exit(EXIT_FAILURE);
+    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    } else {    /* processes in the middle of the chain get here */
+	if (-1 == dup_pipe_read_write(pipes, i, n_of_th)) _exit(EXIT_FAILURE);
+    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    }	
 }
