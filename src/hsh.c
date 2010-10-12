@@ -483,7 +483,6 @@ void init_shell()
     using_history();
 }
 
-
 /* Execute command line */ 
 void execute_line()
 {
@@ -514,17 +513,9 @@ void execute_line()
 	if (-1 == (n_of_ps = parse_args(nargs, args)))
 	    continue;
 
-	/* debugging code: print arr_ps_infos
-	int i = 0, j;
-	for (;i < n_of_ps; i++) {
-	    printf("PS %d: %d arguments: ", i, arr_ps_infos[i].argc);
-	    for (j = 0; j < arr_ps_infos[i].argc; j++)
-	        printf("%s ", *(arr_ps_infos[i].argv + j));
-	    printf("\n");
-	}*/
-
+	/* execute commands */
 	if (1 == n_of_ps) {     /* single-threaded command */
-	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, 0);
+	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, FALSE);
 	    if (rel_stc ==  1) continue;
 	    if (rel_stc == -1) break;
 	} else {		/* multi-threaded command */
