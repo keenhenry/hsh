@@ -62,6 +62,7 @@ char *command_generator(const char *, int);
 char **hsh_completion(const char *, int, int);
 
 /* IO redirection interface */
+int io_exception_hdlr(int nargs, char **args);
 int io_redirect(int *pnargs, char **args);
 void restore_stdio(void);
 

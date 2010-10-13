@@ -23,24 +23,27 @@ int pipe_exception_hdlr(int nargs, char **args)
 {
     int i, exception = 0;
 
-    for (i = 0; i < nargs-1; i++) {
-    	if ((i == 0 && !strcmp("|", args[i])) || (i==nargs-2 && !strcmp("|", args[i+1]))) {
-	    exception = 1;
-	    break;
-	} else if ((!strcmp(args[i], "|") && !strcmp(args[i+1], "|")) ||
-	    (!strcmp(args[i], "|") && !strcmp(args[i+1], "<")) ||
-	    (!strcmp(args[i], "|") && !strcmp(args[i+1], ">")) ||
-	    (!strcmp(args[i], ">") && !strcmp(args[i+1], "|")) ||
-	    (!strcmp(args[i], "<") && !strcmp(args[i+1], "|"))) {
-	    exception = 2;
-	    break;
-	}
-    }
+    /* check for exceptions */
+    exception = (!strcmp("|", args[0]))? 1 : 0;
+    exception = (!exception && !strcmp("|", args[nargs-1]))? 2 : 0;
+    
+    for (i = 0; !exception && i<(nargs-1); i++)
+	if ((!strcmp(args[i], "|") && !strcmp(args[i+1], "|"))
+	 || (!strcmp(args[i], "|") && !strcmp(args[i+1], ">"))
+	 || (!strcmp(args[i], ">") && !strcmp(args[i+1], "|"))
+	 || (!strcmp(args[i], "|") && !strcmp(args[i+1], "<"))
+	 || (!strcmp(args[i], "<") && !strcmp(args[i+1], "|")))
+	    exception = 3;
 
     /* exception handling */
-    if (exception == 1 || exception == 2)
-	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[i+1]);
-	
+    if (exception == 1)
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[0]);
+    else if (exception == 2)
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[nargs-1]);
+    else if (exception == 3)
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[i]);
+    else
+	exception = io_exception_hdlr(nargs, args);
     return exception;
 }
 
@@ -216,7 +219,8 @@ void pipe_process(int n_of_th, int i, int (*pipes)[], pid_t pid)
 {
     if (i == n_of_th) {	/* parent of all processes */
 	close_pipes(pipes, n_of_th);
-    	wait_first_child(pid); 
+    	usleep(50000);
+	wait_first_child(pid); 
     } else if (i == n_of_th - 1) {   /* first child in the chain */
 	if (-1 == dup_pipe_read(pipes, 0, n_of_th)) _exit(EXIT_FAILURE);
     	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);

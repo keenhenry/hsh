@@ -28,36 +28,27 @@ int io_exception_hdlr(int nargs, char **args)
 {
     int i, exception = 0;
 
-    if (nargs==1 && (!strcmp(args[0], ">") || !strcmp(args[0], "<") || 
+    /* check for exceptions */
+    if (nargs==1 && (!strcmp(args[0], ">")  || !strcmp(args[0], "<") || 
 	    	     !strcmp(args[0], "1>") || !strcmp(args[0], "2>")))
 	    exception = 1;
-
-    for (i = 0; i < nargs-1; i++) {	/* i must start with 0 */
-	//if (!strcmp(args[i], ">") && !strcmp(args[i+2], "<"))
-	//    exception = 1;
-	//else if (!strcmp(args[i], ">") && !strcmp(args[i+2], "|"))
-	//    exception = 1;
-	//else if (!strcmp(args[i], "|") && !strcmp(args[i+2], "<"))
-	//    exception = 1;
-	if (!strcmp(args[nargs-1], ">") || !strcmp(args[nargs-1], "<")) {
+    if (!strcmp(args[nargs-1], ">") || !strcmp(args[nargs-1], "<"))
 	    exception = 2;
-	    break;
-	} else if ((!strcmp(args[i], ">") && !strcmp(args[i+1], ">")) ||
-	     	   (!strcmp(args[i], ">") && !strcmp(args[i+1], "<")) ||	
-	     	   (!strcmp(args[i], "<") && !strcmp(args[i+1], ">")) ||
-	     	   (!strcmp(args[i], "<") && !strcmp(args[i+1], "<")) ||
-	     	   (!strcmp(args[i], "2>") && !strcmp(args[i+1], "2>"))) {
+    for (i = 0; !exception && i<(nargs-1); i++) // i must start with 0
+	if ((!strcmp(args[i], ">") && !strcmp(args[i+1], ">")) ||
+	    (!strcmp(args[i], ">") && !strcmp(args[i+1], "<")) ||	
+	    (!strcmp(args[i], "<") && !strcmp(args[i+1], ">")) ||
+	    (!strcmp(args[i], "<") && !strcmp(args[i+1], "<")) ||
+	    (!strcmp(args[i], "2>") && !strcmp(args[i+1], "2>")))
 	    exception = 3;
-	    break;
-	}
-    }
 
+    /* exception handling */
     if (exception == 1)
 	fprintf(stderr, "-hsh: syntax error near unexpected token 'newline'\n");
     else if (exception == 2)
 	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[nargs-1]);
     else if (exception == 3)
-	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[i+1]);
+	fprintf(stderr, "-hsh: syntax error near unexpected token '%s'\n", args[i]);
     return exception;
 }
 
@@ -148,8 +139,8 @@ int io_redirect(int *pnargs, char **args)
 {
     int i = 0, rel = 0, fd[3];	/* i needs to be started with 0 */
 
-    if (io_exception_hdlr(*pnargs, args))
-	return 1;
+    //if (io_exception_hdlr(*pnargs, args))
+	//return 1; // checked inside pipe_exception_hdlr()
 
     /* IMPORTANT! MUST remove io operators and associated 
      * file names in args; using del_args() to do that */

@@ -428,7 +428,7 @@ int single_threaded_cmd(int *pnargs, char **args, int ipc)
 	 * it is empty for commands such as: "> ls" */
         restore_stdio();
     }
-    
+   
     if (ipc) _exit(EXIT_SUCCESS);
     else return 0;
 }
