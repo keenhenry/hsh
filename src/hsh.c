@@ -181,10 +181,6 @@ int parse_args(int nargs, char **args)
 {
     int num_of_ps;
 
-    // we can add argument evaluation here;
-    // e.g. codes for environmental variables
-    // can be put here!
-    
     /* check syntax errors first */
     if (pipe_exception_hdlr(nargs, args))
 	return -1;
@@ -377,6 +373,29 @@ char *command_generator (const char *text, int state)
 // 	     	 						     //
 //===================================================================//
 
+/* A function to perform words expansion for a single process.
+ * @words: pointer to wordexp_t structure
+ * @args: process argument list
+ * @return: 1 if errors occurs otherwise 0 */
+int expand_words(wordexp_t *words, char **args)
+{
+    int i;
+
+    switch (wordexp(args[0], words, 0)) {
+	case 0: break;
+	case WRDE_NOSPACE: wordfree(words);
+	default: return 1;
+    }
+
+    for(i = 1; args[i]; ++i) {
+	if (wordexp(args[i], words, WRDE_APPEND|WRDE_UNDEF)) {
+	    wordfree(words);
+	    return 1;
+	}
+    }
+    return 0;
+}
+
 /* A function to execute single-threaded command.
  * @pnargs: pointer to nargs variable in execute_line() function
  * @args: cmd line argument list
@@ -388,6 +407,7 @@ int single_threaded_cmd(int *pnargs, char **args, int ipc)
 {
     int rel_blt;
     char *cmd_path = (char*) NULL;  /* command path */
+    wordexp_t words;
 
     /* check for io redireciton errors */
     if (io_redirect(pnargs, args)) {
@@ -395,13 +415,25 @@ int single_threaded_cmd(int *pnargs, char **args, int ipc)
 	else return 1;
     }
 
+    /* perform words expansion */
+    if (expand_words(&words, args)) {
+	if (ipc) _exit(EXIT_FAILURE);
+	else return 1;
+    }
+
+    /* update argument list information */
+    args = words.we_wordv;
+    *pnargs = words.we_wordc;
+
     /* execute builtin cmd and check for errors */
     if (-1 == (rel_blt = execute_builtin(*pnargs, args))) {
     	restore_stdio();
+	wordfree(&words);
 	if (ipc) _exit(EXIT_FAILURE);
 	else return -1;
     } else if (rel_blt >= 0) {
         restore_stdio();
+	wordfree(&words);
 	if (ipc) _exit(EXIT_SUCCESS);    /* terminate thread */
 	else return 1;
     }
@@ -422,13 +454,17 @@ int single_threaded_cmd(int *pnargs, char **args, int ipc)
     	/* no such command and command line is not empty */
 	restore_stdio();
 	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
-	if (ipc) _exit(EXIT_FAILURE);
+	if (ipc) {
+	    wordfree(&words);
+	    _exit(EXIT_FAILURE);
+	}
     } else {
 	/* command line is empty when reaching here;
 	 * it is empty for commands such as: "> ls" */
         restore_stdio();
     }
    
+    wordfree(&words);
     if (ipc) _exit(EXIT_SUCCESS);
     else return 0;
 }
@@ -452,7 +488,7 @@ void multi_threaded_cmd(int n_of_th)
         if ((pid = fork())) break;
     
     /* process code execution */
-    pipe_process(n_of_th, i, pipes, pid);
+    run_piped_process(n_of_th, i, pipes, pid);
 }
 
 //===================================================================//

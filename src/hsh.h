@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <wordexp.h>		/* GNU C library pattern word expansion */
 #include <readline/readline.h>	/* The GNU readline library */
 #include <readline/history.h>	/* The GNU history library */
 #include "list.h"
@@ -74,7 +75,7 @@ int dup_pipe_read(int (*pipes)[2], int idx, int n_of_th);
 int dup_pipe_write(int (*pipes)[2], int idx, int n_of_th);
 int dup_pipe_read_write(int (*pipes)[2], int idx, int n_of_th);
 void close_pipes(int (*pipes)[2], int n_of_th);
-void pipe_process(int n_of_th, int i, int (*pipes)[], pid_t pid); 
+void run_piped_process(int n_of_th, int i, int (*pipes)[], pid_t pid); 
 
 /* command line parsing interface */
 int count_processes(char **args); 

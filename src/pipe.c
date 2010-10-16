@@ -215,7 +215,7 @@ int dup_pipe_read_write(int (*pipes)[2], int idx, int n_of_th)
 /* Setup pipes for a single process run the process in the pipeline.
  * @n_of_th: number of threads in the line
  * @i: index of loop; index of threads in arr_ps_infos */
-void pipe_process(int n_of_th, int i, int (*pipes)[], pid_t pid)  
+void run_piped_process(int n_of_th, int i, int (*pipes)[], pid_t pid)  
 {
     if (i == n_of_th) {	/* parent of all processes */
 	close_pipes(pipes, n_of_th);

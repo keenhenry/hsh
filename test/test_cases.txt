@@ -1,0 +1,1 @@
+tr 'A-Z' 'a-z' < main.c | tr -cs 'a-z' '\n' | sort | uniq | comm -23 - /usr/share/dict/words > tmp 2> err.txt
