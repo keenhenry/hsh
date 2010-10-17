@@ -373,6 +373,10 @@ char *command_generator (const char *text, int state)
 // 	     	 						     //
 //===================================================================//
 
+/* a macro as as shorthand for calling restore_stdio() 
+ * and wordfree() together. */
+#define RSTDIO_FREEWD(w) do { restore_stdio(); wordfree(&w); } while (0)
+
 /* A function to perform words expansion for a single process.
  * @words: pointer to wordexp_t structure
  * @args: process argument list
@@ -399,27 +403,19 @@ int expand_words(wordexp_t *words, char **args)
 /* A function to execute single-threaded command.
  * @pnargs: pointer to nargs variable in execute_line() function
  * @args: cmd line argument list
- * @ipc: 0 is single-threaded mode; 1 is multi-threaded mode
  * @return: 1 to continue in loop in the calling function;
  * 	    0 to return normally to the calling function;
  * 	    -1 to break in the calling function */
-int single_threaded_cmd(int *pnargs, char **args, int ipc)
+int single_threaded_cmd(int *pnargs, char **args)
 {
     int rel_blt;
     char *cmd_path = (char*) NULL;  /* command path */
     wordexp_t words;
 
-    /* check for io redireciton errors */
-    if (io_redirect(pnargs, args)) {
-	if (ipc) _exit(EXIT_FAILURE);
-	else return 1;
-    }
-
-    /* perform words expansion */
-    if (expand_words(&words, args)) {
-	if (ipc) _exit(EXIT_FAILURE);
-	else return 1;
-    }
+    /* io redireciton and words expansion 
+     * return 1 if error occurs */
+    if (io_redirect(pnargs, args) || expand_words(&words, args))
+	return 1;
 
     /* update argument list information */
     args = words.we_wordv;
@@ -427,46 +423,69 @@ int single_threaded_cmd(int *pnargs, char **args, int ipc)
 
     /* execute builtin cmd and check for errors */
     if (-1 == (rel_blt = execute_builtin(*pnargs, args))) {
-    	restore_stdio();
-	wordfree(&words);
-	if (ipc) _exit(EXIT_FAILURE);
-	else return -1;
+	RSTDIO_FREEWD(words);
+	return -1;
     } else if (rel_blt >= 0) {
-        restore_stdio();
-	wordfree(&words);
-	if (ipc) _exit(EXIT_SUCCESS);    /* terminate thread */
-	else return 1;
+	RSTDIO_FREEWD(words);
+	return 1;
+    }
+    
+    /* execute system utility and check for errors */
+    if ((cmd_path = find_cmd(&paths_list, args))) {
+        /* reach here if it is a system utility command */
+	execute_cmd(cmd_path, args);
+        free(cmd_path);
+    } else if (*pnargs) {	
+    	/* no such command */
+	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
+    }
+    
+    RSTDIO_FREEWD(words);
+    return 0;
+}
+
+/* A function to execute single-threaded command.
+ * @pnargs: pointer to nargs variable in execute_line() function
+ * @args: cmd line argument list */
+void piped_single_threaded_cmd(int *pnargs, char **args)
+{
+    int rel_blt;
+    char *cmd_path = (char*) NULL;  /* command path */
+    wordexp_t words;
+
+    /* io redireciton and words expansion 
+     * terminate process if error occurs */
+    if (io_redirect(pnargs, args) || expand_words(&words, args))
+	_exit(EXIT_FAILURE);
+
+    /* update argument list information */
+    args = words.we_wordv;
+    *pnargs = words.we_wordc;
+
+    /* execute builtin cmd and check for errors */
+    if (-1 == (rel_blt = execute_builtin(*pnargs, args))) {
+	RSTDIO_FREEWD(words);
+	_exit(EXIT_FAILURE);
+    } else if (rel_blt >= 0) {
+	RSTDIO_FREEWD(words);
+	_exit(EXIT_SUCCESS);    /* terminate process */
     }
     
     /* execute system utility and check for errors */
     if ((cmd_path = find_cmd(&paths_list, args))) {
         /* reach here if rel_blt == -2 && cmd_path != NULL */
-	if (ipc) {
-	    execv(cmd_path, args);    // should not return
-	    perror("execv");
-	    _exit(EXIT_FAILURE);
-	} else {   
-	    execute_cmd(cmd_path, args);
-            restore_stdio();
-            free(cmd_path);
-	}
+	execv(cmd_path, args);    // should not return
+	perror("execv");
+	_exit(EXIT_FAILURE);
     } else if (*pnargs) {	
     	/* no such command and command line is not empty */
-	restore_stdio();
 	fprintf(stderr, "-hsh: %s: command not found\n", args[0]);
-	if (ipc) {
-	    wordfree(&words);
-	    _exit(EXIT_FAILURE);
-	}
-    } else {
-	/* command line is empty when reaching here;
-	 * it is empty for commands such as: "> ls" */
-        restore_stdio();
+    	RSTDIO_FREEWD(words);
+    	_exit(EXIT_FAILURE);
     }
    
-    wordfree(&words);
-    if (ipc) _exit(EXIT_SUCCESS);
-    else return 0;
+    RSTDIO_FREEWD(words);
+    _exit(EXIT_SUCCESS);
 }
 
 /* A function to execute multi-threaded command.
@@ -551,7 +570,7 @@ void execute_line()
 
 	/* execute commands */
 	if (1 == n_of_ps) {     /* single-threaded command */
-	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv, FALSE);
+	    rel_stc = single_threaded_cmd(&(arr_ps_infos[0].argc), arr_ps_infos[0].argv);
 	    if (rel_stc ==  1) continue;
 	    if (rel_stc == -1) break;
 	} else {		/* multi-threaded command */

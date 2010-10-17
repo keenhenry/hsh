@@ -7,7 +7,7 @@
 #include "hsh.h"
 
 extern PS_INFO *arr_ps_infos;
-extern int single_threaded_cmd(int *pnargs, char **args, int mode);
+extern void piped_single_threaded_cmd(int *pnargs, char **args);
 
 //===================================================================//
 // 	     	 						     //
@@ -32,7 +32,9 @@ int pipe_exception_hdlr(int nargs, char **args)
 	 || (!strcmp(args[i], "|") && !strcmp(args[i+1], ">"))
 	 || (!strcmp(args[i], ">") && !strcmp(args[i+1], "|"))
 	 || (!strcmp(args[i], "|") && !strcmp(args[i+1], "<"))
-	 || (!strcmp(args[i], "<") && !strcmp(args[i+1], "|")))
+	 || (!strcmp(args[i], "<") && !strcmp(args[i+1], "|"))
+	 || (!strcmp(args[i], "|") && !strcmp(args[i+1], "2>"))
+	 || (!strcmp(args[i], "2>") && !strcmp(args[i+1], "|")))
 	    exception = 3;
 
     /* exception handling */
@@ -223,12 +225,12 @@ void run_piped_process(int n_of_th, int i, int (*pipes)[], pid_t pid)
 	wait_first_child(pid); 
     } else if (i == n_of_th - 1) {   /* first child in the chain */
 	if (-1 == dup_pipe_read(pipes, 0, n_of_th)) _exit(EXIT_FAILURE);
-    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    	piped_single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv);
     } else if (i == 0) {    /* last child in the chain gets here */
 	if (-1 == dup_pipe_write(pipes, n_of_th-2, n_of_th)) _exit(EXIT_FAILURE);
-    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    	piped_single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv);
     } else {    /* processes in the middle of the chain get here */
 	if (-1 == dup_pipe_read_write(pipes, i, n_of_th)) _exit(EXIT_FAILURE);
-    	single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv, TRUE);
+    	piped_single_threaded_cmd(&arr_ps_infos[i].argc, arr_ps_infos[i].argv);
     }	
 }
