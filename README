@@ -1,27 +1,26 @@
-# Documentation for hsh program
+# Documentation for Hank Shell - Hsh
+#
 
 [To compile]: 
 	$ make
 
 [To do test run]:
-	$ make test # This will do a test run with valgrind running
+	$ make test # This will do a test run with valgrind in the back 
 
 [Program Details]:
-Hank shell allows maximum of 256 arguments on the command line.
 
-Below lists all the builtin commands implemented in Hank Shell:
+Below lists all(9) the builtin commands implemented in Hank Shell:
 
-cd	 : change current working directory to home directory
-dirs     :
-kill     : 
+cd	 : change current working directory
+dirs     : list pushed directories on the directory stack
 exit	 : terminate exeucution of sh
-echo     :
-history  : show command histor
-pwd      :
-pushd    :
-popd     :
-path     :
-
+echo     : echo strings that follow this command
+history  : show commands history
+pwd      : print current working directory
+pushd    : push directory onto a directory stack
+popd     : pop directory from directory stack
+path     : list command search paths in command paths list and add/remove path(s) from that list
+	   
 pushd [dir] : change current working directory to [dir] and push previous working directory on
 to stack (shell internal datastructure).
 
