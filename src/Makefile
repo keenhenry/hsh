@@ -23,7 +23,7 @@ $(TAR): $(OBJS)
 $(TAR).o: $(HEAD) main.c builtins.c list.c io_redirect.c pipe.c
 
 test: build
-	valgrind -v --log-file=valgrind.log --tool=memcheck --leak-check=full ./hsh
+	valgrind -v --log-file=valgrind.log --tool=memcheck --leak-check=full --show-reachable=yes ./hsh
 
 .PHONY: clean
 clean:
