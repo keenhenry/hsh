@@ -75,7 +75,7 @@ void set_paths_list(void)
 
 /* Convert absolute pathname into relative 
  * (to home directory) pathname. */
-static void path_abs2rel()
+void path_abs2rel()
 {
 	const char *home_dir = getenv("HOME");
 	char *path = NULL;
@@ -99,7 +99,7 @@ static void path_abs2rel()
 
 /* Update command line prompt.
  * @prompt_buf: buffer to hold the prompt string */
-static void update_prompt(char **prompt_buf)
+void update_prompt(char **prompt_buf)
 {
 	int len = strlen(getenv("USERNAME")) + strlen(hostname) 
 		+ strlen(rel_cwd) + strlen("@:# ");
@@ -128,7 +128,7 @@ static void update_prompt(char **prompt_buf)
  * @prompt: prompt string buffer
  * @return: NULL on EOF && emptry string, 
  * otherwise a pointer to the string read. */
-static char *rl_gets(char *prompt)
+char *rl_gets(char *prompt)
 {
 	/* If the buffer has already been allocated,
 	 * return the memory to the free pool. */
@@ -151,7 +151,7 @@ static char *rl_gets(char *prompt)
 /* Parse command line string into tokens.
  * @args: a buffer to hold tokens
  * @return: # of tokens; -1 when too much tokens */
-static int cmd_tokenizer(char **args)
+int cmd_tokenizer(char **args)
 {
     int  count = 0;
     char *token;
@@ -201,7 +201,7 @@ int parse_args(int nargs, char **args)
  * @name: the name of the command
  * @return: a pointer to that BUILTIN entry;  
  * return NULL if name isn't a builtin name. */
-static BUILTIN *find_builtins(char *name)
+BUILTIN *find_builtins(char *name)
 {
 	register int i;
 
@@ -217,7 +217,7 @@ static BUILTIN *find_builtins(char *name)
  * @return: -2 if command is not builtin cmd;
  * return 1 to break out loop;
  * return otherwise to continue loop */
-static int execute_builtin(int nargs, char **args)
+int execute_builtin(int nargs, char **args)
 {
     BUILTIN *builtin = (BUILTIN*) NULL; 
 	
@@ -230,7 +230,7 @@ static int execute_builtin(int nargs, char **args)
  * @paths: paths list to be searched => paths_list
  * @args: command line argument list
  * @return: command path if found; otherwise NULL */
-static char *find_cmd(struct List *paths, char *args[])
+char *find_cmd(struct List *paths, char *args[])
 {
     int len;			/* pathname length */
     char *path = (char *) NULL;	/* command path */
@@ -287,7 +287,7 @@ static char *find_cmd(struct List *paths, char *args[])
 /* Execute system utilities or any executable found from find_cmd.
  * @cmd_path: path of the command being execute
  * @args: command line arguments */
-static void execute_cmd(char *cmd_path, char **args)
+void execute_cmd(char *cmd_path, char **args)
 {
     pid_t pid;
     switch (pid = fork()) {
@@ -385,14 +385,15 @@ int expand_words(wordexp_t *words, char **args)
 {
     int i;
 
-    switch (wordexp(args[0], words, 0)) {
-	case 0: break;
+    switch (wordexp(args[0], words, 0)) 
+    {
+	case 0:	break;
 	case WRDE_NOSPACE: wordfree(words);
 	default: return 1;
     }
 
     for(i = 1; args[i]; ++i) {
-	if (wordexp(args[i], words, WRDE_APPEND|WRDE_UNDEF)) {
+	if (wordexp(args[i], words, WRDE_APPEND|WRDE_NOCMD|WRDE_UNDEF)) {
 	    wordfree(words);
 	    return 1;
 	}
