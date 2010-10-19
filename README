@@ -1,5 +1,5 @@
 # Documentation for Hank Shell - Hsh
-#
+# Hsh is a simplified version of BASH.
 
 [To compile]: 
 	$ make
@@ -9,7 +9,7 @@
 
 [Program Details]:
 
-Below lists all(9) the builtin commands implemented in Hank Shell:
+Below lists all (9) the builtin commands implemented in Hank Shell:
 
 cd	 : change current working directory
 dirs     : list pushed directories on the directory stack
@@ -24,8 +24,7 @@ path     : list command search paths in command paths list and add/remove path(s
 pushd [dir] : change current working directory to [dir] and push previous working directory on
 to stack (shell internal datastructure).
 
-popd : does the opposite of pushd, taking no arguments. If more arguments are specified on the
-command line, sh will complain and display a new prompt.
+popd : 
 
 path : show sh search directory list.
 path [+|-] [dir] : add or delete directory from direcotory list. The list is managed by an
