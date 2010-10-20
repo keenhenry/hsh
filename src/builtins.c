@@ -6,7 +6,7 @@
 
 #include "hsh.h"
 
-extern char cwd[];	// can't use char *rel_cwd; i don't know why
+extern char cwd[];	// can't use char *cwd; i don't know why
 extern char rel_cwd[];	// can't use char *rel_cwd; i don't know why
 extern struct List dirs_stack;
 extern struct List paths_list;
@@ -275,7 +275,7 @@ inline int builtin_exit(int nargs, char **args) { return -1; }
  * @return: -1 to break; otherwise continue loop */
 int builtin_cd(int nargs, char **args)
 {
-	return cd_exception_hdlr(nargs, args);
+    return cd_exception_hdlr(nargs, args);
 }
 
 /* echo builtin function: print command line args

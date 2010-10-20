@@ -60,6 +60,18 @@ char *dupstr (char *s)
 {
     char *r;
 
+    r = (char *) malloc (strlen (s) + 1);
+    if (!r)
+	die_with_error("malloc");
+    else
+	strcpy (r, s);
+    return (r);
+}
+
+char *rl_dupstr (char *s)
+{
+    char *r;
+
     r = xmalloc (strlen (s) + 1);
     strcpy (r, s);
     return (r);
@@ -84,8 +96,10 @@ void path_abs2rel()
 	memset(cwd, 0, PATH_SIZE);
 	memset(rel_cwd, 0, PATH_SIZE);
 
-	/* get current working directory in abs pathname */
+	/* get current working directory in abs pathname 
+	 * and set environment variable 'PWD' */
 	getcwd(cwd, PATH_SIZE);
+	setenv("PWD", cwd, 1);
 
 	/* make relative working directory path */
 	if (strstr(cwd, home_dir)) {  	
@@ -360,7 +374,7 @@ char *command_generator (const char *text, int state)
     while ((name = builtins[list_index].name)) {
         list_index++;
         if (strncmp (name, text, len) == 0)
-            return (dupstr(name));
+            return (rl_dupstr(name));
     }
 
     /* If no names matched, then return NULL. */
