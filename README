@@ -45,7 +45,7 @@ path [+|-] [dir] : add or remove dir from directory path list. if both '+|-' and
 		   omitted, hsh will print all the directories in the list. the list is a hsh
 		   internal data structure.
 
-(3) IO redirection also implemented:
+(3) IO redirection:
 
 Commands like 'cat < main.c > tmp' can be interpreted by Hsh!
 
@@ -63,9 +63,9 @@ $ tr 'A-Z' 'a-z' < main.c | tr -cs 'a-z' '\n' | sort | uniq | comm -23 - /usr/sh
 can be executed beautifully without any problems. Also notice that pipes in Hsh can pipe system utilities as well
 as builtin commands!
 
-(5) Environmental variables are also implemented:
+(5) Environmental variables:
 
-Two environmental variables are implemented - HOME and PWD. Therefore,
+Two environmental variables are implemented, namely, HOME and PWD. Therefore,
 
 $ echo $HOME
 $ echo $PWD
