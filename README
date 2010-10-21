@@ -1,36 +1,85 @@
-# Documentation for Hank Shell - Hsh
+# README for Hank Shell (Hsh)
 # Hsh is a simplified version of BASH.
 
 [To compile]: 
 	$ make
 
 [To do test run]:
-	$ make test # This will do a test run with valgrind in the back 
+	$ make test # This will do a test run with valgrind 
 
-[Program Details]:
+[Hsh Features]:
 
-Below lists all (9) the builtin commands implemented in Hank Shell:
+(1) Below lists all (9) the builtin commands implemented in Hank Shell:
 
 cd	 : change current working directory
 dirs     : list pushed directories on the directory stack
-exit	 : terminate exeucution of sh
+exit	 : terminate exeucution of hsh
 echo     : echo strings that follow this command
 history  : show commands history
 pwd      : print current working directory
 pushd    : push directory onto a directory stack
 popd     : pop directory from directory stack
-path     : list command search paths in command paths list and add/remove path(s) from that list
-	   
-pushd [dir] : change current working directory to [dir] and push previous working directory on
-to stack (shell internal datastructure).
+path     : list command search paths from command paths list and add/remove path(s) from that list
 
-popd : 
+(2) Builtin commands details:
 
-path : show sh search directory list.
-path [+|-] [dir] : add or delete directory from direcotory list. The list is managed by an
-shell internal environmental variable.
+cd [dir] : change directory to dir. If dir is omitted, change directory to home directory.
 
-Hank Shell path variable and directory stack are both implemented with doubly linked list (in stack.c
-and stack.h).
+dirs	 : print directories pushed on directory stack; seperated by spaces.
 
-[Program results]:
+exit	 : exiting hsh program. 
+
+echo [s] : print whatever texts followed echo commands.
+
+history [+n] : show n commands stored in command history list; if 'n' or '+n' is omitted,
+	       hsh will list all the commands in command history.
+
+pwd      : print current working directory
+
+pushd [dir] : same as 'cd', but push current working directory onto directory stack 
+	      while doing 'cd'. directory stack is a hsh internal data structure.
+
+popd [-n] : opposite of 'pushd'. option '-n' specify how many entries from stack you want to pop.
+
+path [+|-] [dir] : add or remove dir from directory path list. if both '+|-' and 'dir' arguments
+		   omitted, hsh will print all the directories in the list. the list is a hsh
+		   internal data structure.
+
+(3) IO redirection also implemented:
+
+Commands like 'cat < main.c > tmp' can be interpreted by Hsh!
+
+(4) Pipeline with IO redirection:
+
+Hsh can read pipes ('|')! 
+
+Commands such as -
+
+$ pwd | grep main | cut -b 1-10
+$ a | b | c | d | e
+$ cat < main.c | wc
+$ tr 'A-Z' 'a-z' < main.c | tr -cs 'a-z' '\n' | sort | uniq | comm -23 - /usr/share/dict/words > tmp 2> err.txt
+
+can be executed beautifully without any problems. Also notice that pipes in Hsh can pipe system utilities as well
+as builtin commands!
+
+(5) Environmental variables are also implemented:
+
+Two environmental variables are implemented - HOME and PWD. Therefore,
+
+$ echo $HOME
+$ echo $PWD
+
+can also be interpreted correctly.
+
+(6) 'Globbing' for Hsh:
+
+Yes! Hsh can do globbing! The followings
+
+$ ls *.c
+$ ls test[1-3].c
+$ ls hsh.* | wc
+
+are all doing what you are expecting them to do!
+
+[Test Runs]:
