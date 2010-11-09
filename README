@@ -1,11 +1,15 @@
 # README for Hank Shell (Hsh)
 # Hsh is a simplified version of BASH.
 
-[To compile]: 
-	$ make
+[How to use hsh]:
 
-[To do test run]:
-	$ make test # This will do a test run with valgrind 
+(1) First you need to install gnu readline library: 
+    
+    $ sudo apt-get install libreadline6 libreadline6-dev
+
+(2) Second you need to compile and install hsh:
+    
+    Run 'make' in the 'src/' sub-directory ==> $ make
 
 [Hsh Features]:
 
@@ -81,5 +85,3 @@ $ ls test[1-3].c
 $ ls hsh.* | wc
 
 are all doing what you are expecting them to do!
-
-[Test Runs]:
